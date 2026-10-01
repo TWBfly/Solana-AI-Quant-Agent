@@ -58,58 +58,19 @@
 <body class="min-h-screen flex flex-col">
 
   <!-- Top Global Header -->
-  <header class="border-b border-slate-800 bg-slate-950/90 sticky top-0 z-50 backdrop-blur-md px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-cyan-500/20">
+  <header class="border-b border-slate-800 bg-slate-950/90 sticky top-0 z-50 backdrop-blur-md px-6 py-2.5 flex items-center justify-between">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-md shadow-cyan-500/20">
         ⚡
       </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="text-base font-bold text-white tracking-tight">Solana AI Quant Agent</h1>
-          <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">
-            DEX v6 Router
-          </span>
-          <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800">
-            Next-Open 因果撮合
-          </span>
-        </div>
-        <p class="text-xs text-slate-400">结合链上实时微观流动性、高阶因子、Jupiter 模拟路由与真实全额摩擦因果回测</p>
-      </div>
+      <h1 class="text-sm sm:text-base font-bold text-white tracking-tight">Solana AI Quant Agent</h1>
     </div>
 
-    <!-- Live Status & Mode Indicators -->
+    <!-- Right Controls: Minimalist -->
     <div class="flex items-center space-x-3 text-xs">
-      <!-- Database Status Badge -->
-      <div id="dbBadge" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-cyan-800/80 text-cyan-300 font-mono text-[11px]" title="本地高性能时序数据库 (SQLite WAL)">
-        <i data-lucide="database" class="w-3.5 h-3.5 text-cyan-400"></i>
-        <span>本地数据库: <b id="dbTotalBars" class="text-white">68,955</b> 根K线</span>
-      </div>
-
-      <button onclick="syncCurrentTokenData()" id="btnSyncDb" title="从权威真实市场源拉取历史K线并存入本地数据库" class="px-3 py-1.5 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white font-medium flex items-center gap-1.5 transition shadow-md shadow-cyan-700/20">
-        <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
-        <span>同步真实市场数据</span>
-      </button>
-
-      <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-        <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <span id="headerDexStatus">DexScreener 实时遥测正常</span>
-      </div>
-
-      <button onclick="triggerPaperTick()" id="btnTick" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium flex items-center gap-1.5 transition shadow-md shadow-emerald-600/20">
-        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-        <span>虚拟盘单步撮合</span>
-      </button>
-
-      <button onclick="jumpToInstitutionalReport()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium flex items-center gap-1.5 transition shadow-md shadow-indigo-600/20">
+      <button onclick="jumpToInstitutionalReport()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm">
         <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
-        <span>📋 机构级绩效全报告 (图二)</span>
-      </button>
-
-      <button onclick="resetPaperAccount()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition">
-        重置虚拟账户
+        <span>回测报告</span>
       </button>
     </div>
   </header>
@@ -483,8 +444,8 @@
           </button>
           <button onclick="switchBottomTab('report')" id="tabBtnReport" class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
             <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
-            <span>📋 机构级深度绩效报告 (图二全指标 & 年/月/日矩阵)</span>
-            <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded-full font-mono">TB/MC全要素</span>
+            <span>📋 回测报告</span>
+            <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded-full font-mono">图二全指标</span>
           </button>
         </div>
 
@@ -567,7 +528,7 @@
             </span>
             <div>
               <div class="font-bold text-white text-sm flex items-center gap-2">
-                <span>机构级全要素回测深度体检报告</span>
+                <span>全要素回测深度报告</span>
                 <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">1:1 对齐图二标准 (TradeBlazer / MultiCharts)</span>
               </div>
               <div class="text-xs text-slate-400">真实扣除 Solana 动态流动性滑点与网络 Gas 费 | 跨越 2022~2026 完整牛熊大周期 (1442 交易日)</div>
