@@ -149,7 +149,7 @@
       <!-- Strategy Selector -->
       <div class="flex items-center space-x-2">
         <span class="text-slate-400 font-medium">策略模型:</span>
-        <select id="selectStrategy" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
+        <select id="selectStrategy" onchange="executeBacktest(1.0)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
           <option value="zlema_supertrend">AI 零滞后趋势突破 (ZLEMA + SuperTrend + 动量门禁)</option>
           <option value="rsi_momentum">RSI 动量自适应趋势策略 (RSI Momentum)</option>
         </select>
@@ -158,9 +158,9 @@
       <!-- Bar Count -->
       <div class="flex items-center space-x-2">
         <span class="text-slate-400 font-medium">K线样本数:</span>
-        <select id="selectBarsCount" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
-          <option value="1200">1,200 根 (约 12 天)</option>
-          <option value="2500" selected>2,500 根 (约 26 天，大数定律)</option>
+        <select id="selectBarsCount" onchange="executeBacktest(1.0)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
+          <option value="1200">1,200 根 (约 12.5 天，半月敏捷样本)</option>
+          <option value="2500" selected>2,500 根 (约 26 天，大数定律基准)</option>
           <option value="5000">5,000 根 (约 52 天，跨牛熊样本)</option>
           <option value="10000">10,000 根 (约 104 天，季度长周期)</option>
           <option value="20000">20,000 根 (约 208 天，半年度大样本)</option>
@@ -171,7 +171,7 @@
       <!-- Trade Size -->
       <div class="flex items-center space-x-2">
         <span class="text-slate-400 font-medium">单笔开仓:</span>
-        <select id="selectTradeSize" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
+        <select id="selectTradeSize" onchange="executeBacktest(1.0)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
           <option value="500">$500 USDC</option>
           <option value="1000" selected>$1,000 USDC</option>
           <option value="2500">$2,500 USDC</option>
@@ -279,7 +279,7 @@
 
         <div class="mt-2 text-[11px] text-slate-500 flex justify-between">
           <span>* 提示：鼠标滚轮可缩放时间轴，按住鼠标拖拽平移，悬浮任意 K 柱可查看价格、指标与撮合成交诊断</span>
-          <span id="chartRangeLabel">当前显示: 2,500 根 15m K线</span>
+          <span id="chartRangeLabel" class="font-mono text-cyan-400 font-medium">当前显示: 2,500 根 15m K线 (约 26.0 天)</span>
         </div>
       </div>
 
@@ -468,6 +468,7 @@
     window.addEventListener("DOMContentLoaded", async () => {
       await loadTokensFromBackend();
       renderTokenSelector();
+      updateBarsCountOptions(currentTimeframe);
       initMainChart();
       fetchTokenStatus(currentToken);
       fetchDbStats();
@@ -558,6 +559,54 @@
       executeBacktest(1.0);
     }
 
+    const TIMEFRAME_BARS_OPTIONS = {
+      "5m": [
+        { count: 1440, label: "1,440 根 (约 5 天，周内高频)" },
+        { count: 2880, label: "2,880 根 (约 10 天，双周大数样本)", selected: true },
+        { count: 5760, label: "5,760 根 (约 20 天，跨周波段样本)" },
+        { count: 8640, label: "8,640 根 (约 30 天，月度全样本)" },
+        { count: 17280, label: "17,280 根 (约 60 天，双月深度样本)" },
+        { count: 28800, label: "28,800 根 (约 100 天，百天高频极值)" }
+      ],
+      "15m": [
+        { count: 1200, label: "1,200 根 (约 12.5 天，半月敏捷样本)" },
+        { count: 2500, label: "2,500 根 (约 26 天，大数定律基准)", selected: true },
+        { count: 5000, label: "5,000 根 (约 52 天，跨牛熊样本)" },
+        { count: 10000, label: "10,000 根 (约 104 天，季度长周期)" },
+        { count: 20000, label: "20,000 根 (约 208 天，半年度大样本)" },
+        { count: 35000, label: "35,000 根 (约 365 天，年度全样本)" }
+      ],
+      "1h": [
+        { count: 720, label: "720 根 (约 30 天，月度样本)" },
+        { count: 1500, label: "1,500 根 (约 62.5 天，双月长线样本)", selected: true },
+        { count: 2160, label: "2,160 根 (约 90 天，季度周期)" },
+        { count: 4320, label: "4,320 根 (约 180 天，半年度样本)" },
+        { count: 8760, label: "8,760 根 (约 365 天，年度全样本)" },
+        { count: 17520, label: "17,520 根 (约 2 年，双年度宏观周期)" }
+      ],
+      "4h": [
+        { count: 180, label: "180 根 (约 30 天，月度样本)" },
+        { count: 540, label: "540 根 (约 90 天，季度样本)" },
+        { count: 1080, label: "1,080 根 (约 180 天，半年度样本)", selected: true },
+        { count: 2190, label: "2,190 根 (约 365 天，年度全样本)" },
+        { count: 4380, label: "4,380 根 (约 2 年，双年度大周期)" },
+        { count: 8760, label: "8,760 根 (约 4 年，宏观完整牛熊全周期)" }
+      ]
+    };
+
+    function updateBarsCountOptions(tf) {
+      const select = document.getElementById("selectBarsCount");
+      if (!select) return;
+      const options = TIMEFRAME_BARS_OPTIONS[tf] || TIMEFRAME_BARS_OPTIONS["15m"];
+      const currentVal = parseInt(select.value);
+      const hasCurrent = options.some(o => o.count === currentVal);
+      
+      select.innerHTML = options.map(o => {
+        const isSelected = hasCurrent ? o.count === currentVal : !!o.selected;
+        return `<option value="${o.count}" ${isSelected ? 'selected' : ''}>${o.label}</option>`;
+      }).join('');
+    }
+
     function setTimeframe(tf) {
       currentTimeframe = tf;
       ["5m", "15m", "1h", "4h"].forEach(t => {
@@ -568,6 +617,7 @@
           btn.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white transition";
         }
       });
+      updateBarsCountOptions(tf);
       executeBacktest(1.0);
     }
 
@@ -637,7 +687,11 @@
 
           // Convert basket format to match renderBacktestDashboard
           const mapped = {
-            total_bars: r.total_bars_per_asset,
+            token: "30_SOL_BASKET",
+            timeframe: "1m",
+            total_bars: r.total_bars_per_asset * 30,
+            start_time: "2026-10-01 00:00:00",
+            end_time: "2026-10-01 23:59:00",
             initial_equity: r.initial_equity,
             final_equity: r.final_equity,
             net_profit_usd: r.net_profit_usd,
@@ -776,7 +830,12 @@
       document.getElementById("auditWilson").innerText = `[${res.wilson_ci_low.toFixed(1)}%, ${res.wilson_ci_high.toFixed(1)}%] (跨度 ${res.wilson_ci_span.toFixed(1)}%)`;
       document.getElementById("auditPF").innerText = res.profit_factor.toFixed(2);
       document.getElementById("auditWinLoss").innerText = res.win_loss_ratio.toFixed(2);
-      document.getElementById("auditAvgHold").innerText = `${res.avg_hold_bars.toFixed(1)} 柱 (约 ${(res.avg_hold_bars * (currentTimeframe==='5m'?5:currentTimeframe==='1h'?60:15)/60).toFixed(1)} 小时)`;
+      // Calculate real time span & holding period
+      const tfStr = res.timeframe || currentTimeframe;
+      const tfMinutes = (tfStr === '5m') ? 5 : (tfStr === '1h') ? 60 : (tfStr === '4h') ? 240 : (tfStr === '1m' ? 1 : 15);
+      const holdHours = (res.avg_hold_bars * tfMinutes) / 60;
+      const holdText = holdHours >= 24 ? `${(holdHours / 24).toFixed(1)} 天` : `${holdHours.toFixed(1)} 小时`;
+      document.getElementById("auditAvgHold").innerText = `${res.avg_hold_bars.toFixed(1)} 柱 (约 ${holdText})`;
 
       document.getElementById("auditGasFees").innerText = `$${res.total_fees_usd.toFixed(2)}`;
       document.getElementById("auditSlippage").innerText = `$${res.total_slippage_usd.toFixed(2)}`;
@@ -810,6 +869,25 @@
 
       // 3. Render Chart
       renderCurrentChart();
+
+      // Update Chart Range Label
+      const totalMinutes = res.total_bars * tfMinutes;
+      const totalDays = totalMinutes / 1440;
+      let timeSpanText = "";
+      if (totalDays >= 365) {
+        timeSpanText = `约 ${(totalDays / 365).toFixed(1)} 年`;
+      } else if (totalDays >= 1) {
+        timeSpanText = `约 ${totalDays.toFixed(1)} 天`;
+      } else {
+        timeSpanText = `约 ${(totalMinutes / 60).toFixed(1)} 小时`;
+      }
+      const dateRangeStr = (res.start_time && res.end_time) 
+        ? ` (${res.start_time.slice(0, 10)} ~ ${res.end_time.slice(0, 10)})` 
+        : "";
+      const labelEl = document.getElementById("chartRangeLabel");
+      if (labelEl) {
+        labelEl.innerText = `当前显示: ${res.total_bars.toLocaleString()} 根 ${tfStr} K线 (${timeSpanText}${dateRangeStr})`;
+      }
 
       // 4. Render Table
       renderTradeTable(res.trades);
