@@ -38,6 +38,21 @@
       background: #334155;
       border-radius: 3px;
     }
+    .chart-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      z-index: 99999 !important;
+      border-radius: 0 !important;
+      background: #070b14 !important;
+      padding: 1rem 1.5rem !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -269,12 +284,12 @@
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
 
       <!-- Left 8.5 Cols: Chart Visualization Container -->
-      <div class="xl:col-span-8 glass-panel rounded-2xl p-5 flex flex-col glow-cyan">
+      <div id="chartPanelContainer" class="xl:col-span-8 glass-panel rounded-2xl p-5 flex flex-col glow-cyan transition-all duration-300 relative">
         
-        <!-- Chart Mode Tabs & Legends -->
-        <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
+        <!-- Chart Mode Tabs & Fullscreen Action -->
+        <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-3 gap-3">
           <div class="flex items-center space-x-3 text-xs font-semibold">
-            <button onclick="switchChartMode('candlestick')" id="tabBtnKLine" class="text-cyan-400 border-b-2 border-cyan-400 pb-1 flex items-center gap-1.5">
+            <button onclick="switchChartMode('candlestick')" id="tabBtnKLine" class="text-cyan-400 border-b-2 border-cyan-400 pb-1 flex items-center gap-1.5 font-bold">
               <i data-lucide="candlestick-chart" class="w-4 h-4"></i>
               <span>📊 K线与买卖点标记 (Candlestick & Signals)</span>
             </button>
@@ -288,20 +303,52 @@
             </button>
           </div>
 
-          <div class="flex items-center space-x-3 text-[11px] text-slate-400">
-            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 快线 ZLEMA(9)</span>
-            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span> 慢线 ZLEMA(21)</span>
-            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span> SuperTrend 通道</span>
-            <span class="inline-flex items-center gap-1 text-emerald-400 font-bold">🟢 买入入场</span>
-            <span class="inline-flex items-center gap-1 text-rose-400 font-bold">🔴 卖出出场</span>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleChartFullscreen()" id="btnFullscreen" title="点击或按 ESC 全屏缩放 (双击图表亦可全屏)" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-cyan-600 text-slate-300 hover:text-white border border-slate-700/80 text-xs flex items-center gap-1.5 transition shadow-sm">
+              <i data-lucide="maximize" class="w-3.5 h-3.5" id="iconFullscreen"></i>
+              <span id="textFullscreen">⛶ 全屏显示</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Main & 5 Sub Indicators Dynamic Toolbar (Visible in Candlestick Mode) -->
+        <div id="chartIndicatorBar" class="flex flex-wrap items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80 mb-3 gap-2.5 text-xs">
+          <!-- Left: Main Chart Indicator selector -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-slate-400 font-semibold flex items-center gap-1">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>主图加载:</span>
+            </span>
+            <button onclick="setMainIndicator('zlema')" id="btnMain_zlema" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-cyan-600 text-white transition shadow-sm">ZLEMA(9,21)</button>
+            <button onclick="setMainIndicator('boll')" id="btnMain_boll" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">BOLL(20,2)</button>
+            <button onclick="setMainIndicator('supertrend')" id="btnMain_supertrend" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">SuperTrend</button>
+            <button onclick="setMainIndicator('ema')" id="btnMain_ema" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">EMA(9,21,55)</button>
+            <button onclick="setMainIndicator('none')" id="btnMain_none" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">纯净K线</button>
+          </div>
+
+          <!-- Right: 5 Sub-chart Indicators -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-slate-400 font-semibold flex items-center gap-1">
+              <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>副图加载 (最多5个):</span>
+            </span>
+            <button onclick="toggleSubIndicator('VOL')" id="btnSub_VOL" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-indigo-600 text-white transition shadow-sm">1. VOL 成交量</button>
+            <button onclick="toggleSubIndicator('MACD')" id="btnSub_MACD" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">2. MACD</button>
+            <button onclick="toggleSubIndicator('RSI')" id="btnSub_RSI" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">3. RSI</button>
+            <button onclick="toggleSubIndicator('KDJ')" id="btnSub_KDJ" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">4. KDJ</button>
+            <button onclick="toggleSubIndicator('ATR')" id="btnSub_ATR" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">5. ATR 波幅</button>
+            <button onclick="toggleAll5SubIndicators()" id="btnSub_ALL" class="px-2.5 py-0.5 rounded text-[11px] font-sans font-bold bg-purple-900/60 text-purple-300 hover:bg-purple-600 hover:text-white border border-purple-600/70 transition shadow-sm flex items-center gap-1">
+              <i data-lucide="zap" class="w-3 h-3"></i>
+              <span>一键加载 5 副图</span>
+            </button>
           </div>
         </div>
 
         <!-- Interactive Chart Div -->
-        <div id="mainChart" class="w-full h-[520px]"></div>
+        <div id="mainChart" class="w-full h-[540px] transition-all duration-300" ondblclick="toggleChartFullscreen()"></div>
 
-        <div class="mt-2 text-[11px] text-slate-500 flex justify-between">
-          <span>* 提示：鼠标滚轮可缩放时间轴，按住鼠标拖拽平移，悬浮任意 K 柱可查看价格、指标与撮合成交诊断</span>
+        <div class="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
+          <span>* 提示：支持右上角或双击全屏，滚轮缩放时间轴，支持主图与 5 个副图 (VOL/MACD/RSI/KDJ/ATR) 联动分析</span>
           <span id="chartRangeLabel" class="font-mono text-cyan-400 font-medium">当前显示: 2,500 根 15m K线 (约 26.0 天)</span>
         </div>
       </div>
@@ -1470,6 +1517,144 @@
       executeBacktest(1.0);
     }
 
+    let isChartFullscreen = false;
+    let currentMainIndicator = "zlema"; // "zlema", "boll", "supertrend", "ema", "none"
+    let activeSubIndicators = ["VOL"]; // array of "VOL", "MACD", "RSI", "KDJ", "ATR"
+
+    function updateChartHeight() {
+      const chartEl = document.getElementById("mainChart");
+      if (!chartEl) return;
+      if (isChartFullscreen) {
+        chartEl.style.height = "calc(100vh - 130px)";
+      } else {
+        if (currentChartMode === "candlestick") {
+          const M = activeSubIndicators.length;
+          const baseH = M === 1 ? 540 : (M === 2 ? 660 : (M === 3 ? 780 : (M === 4 ? 880 : 980)));
+          chartEl.style.height = `${baseH}px`;
+        } else {
+          chartEl.style.height = "520px";
+        }
+      }
+    }
+
+    function toggleChartFullscreen() {
+      const container = document.getElementById("chartPanelContainer");
+      const textEl = document.getElementById("textFullscreen");
+      const iconEl = document.getElementById("iconFullscreen");
+      isChartFullscreen = !isChartFullscreen;
+
+      if (isChartFullscreen) {
+        container.classList.add("chart-fullscreen");
+        if (textEl) textEl.innerText = "🗗 退出全屏 (ESC)";
+        if (iconEl) iconEl.setAttribute("data-lucide", "minimize");
+        try {
+          if (container.requestFullscreen && !document.fullscreenElement) {
+            container.requestFullscreen().catch(() => {});
+          }
+        } catch (e) {}
+      } else {
+        container.classList.remove("chart-fullscreen");
+        if (textEl) textEl.innerText = "⛶ 全屏显示";
+        if (iconEl) iconEl.setAttribute("data-lucide", "maximize");
+        try {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } catch (e) {}
+      }
+
+      updateChartHeight();
+      lucide.createIcons();
+      setTimeout(() => {
+        if (mainChartInstance) {
+          mainChartInstance.resize();
+          renderCurrentChart();
+        }
+      }, 60);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && isChartFullscreen) {
+        toggleChartFullscreen();
+      }
+    });
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement && isChartFullscreen) {
+        toggleChartFullscreen();
+      }
+    });
+
+    function setMainIndicator(ind) {
+      currentMainIndicator = ind;
+      ["zlema", "boll", "supertrend", "ema", "none"].forEach(item => {
+        const btn = document.getElementById(`btnMain_${item}`);
+        if (btn) {
+          if (item === ind) {
+            btn.className = "px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-cyan-600 text-white transition shadow-sm";
+          } else {
+            btn.className = "px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition";
+          }
+        }
+      });
+      renderCurrentChart();
+    }
+
+    function toggleSubIndicator(sub) {
+      const idx = activeSubIndicators.indexOf(sub);
+      if (idx >= 0) {
+        if (activeSubIndicators.length > 1) {
+          activeSubIndicators.splice(idx, 1);
+        } else {
+          return; // 保留至少一个副图
+        }
+      } else {
+        const order = ["VOL", "MACD", "RSI", "KDJ", "ATR"];
+        activeSubIndicators.push(sub);
+        activeSubIndicators.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      }
+      updateSubIndicatorButtons();
+      updateChartHeight();
+      if (mainChartInstance) mainChartInstance.resize();
+      renderCurrentChart();
+    }
+
+    function toggleAll5SubIndicators() {
+      if (activeSubIndicators.length === 5) {
+        activeSubIndicators = ["VOL"];
+      } else {
+        activeSubIndicators = ["VOL", "MACD", "RSI", "KDJ", "ATR"];
+      }
+      updateSubIndicatorButtons();
+      updateChartHeight();
+      if (mainChartInstance) mainChartInstance.resize();
+      renderCurrentChart();
+    }
+
+    function updateSubIndicatorButtons() {
+      const allSubs = ["VOL", "MACD", "RSI", "KDJ", "ATR"];
+      allSubs.forEach(sub => {
+        const btn = document.getElementById(`btnSub_${sub}`);
+        if (btn) {
+          if (activeSubIndicators.includes(sub)) {
+            btn.className = "px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-indigo-600 text-white transition shadow-sm";
+          } else {
+            btn.className = "px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition";
+          }
+        }
+      });
+      const allBtn = document.getElementById("btnSub_ALL");
+      if (allBtn) {
+        if (activeSubIndicators.length === 5) {
+          allBtn.className = "px-2.5 py-0.5 rounded text-[11px] font-sans font-bold bg-purple-600 text-white border border-purple-400 transition shadow-sm flex items-center gap-1";
+          allBtn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i><span>已载入全部 5 副图</span>';
+        } else {
+          allBtn.className = "px-2.5 py-0.5 rounded text-[11px] font-sans font-bold bg-purple-900/60 text-purple-300 hover:bg-purple-600 hover:text-white border border-purple-600/70 transition shadow-sm flex items-center gap-1";
+          allBtn.innerHTML = '<i data-lucide="zap" class="w-3 h-3"></i><span>一键加载 5 副图</span>';
+        }
+        lucide.createIcons();
+      }
+    }
+
     function switchChartMode(mode) {
       currentChartMode = mode;
       const klineBtn = document.getElementById("tabBtnKLine");
@@ -1483,7 +1668,184 @@
       equityBtn.className = mode === "equity" ? activeCls : inactiveCls;
       ddBtn.className = mode === "drawdown" ? activeCls : inactiveCls;
 
+      const indBar = document.getElementById("chartIndicatorBar");
+      if (indBar) {
+        indBar.style.display = mode === "candlestick" ? "flex" : "none";
+      }
+
+      updateChartHeight();
+      if (mainChartInstance) mainChartInstance.resize();
       renderCurrentChart();
+    }
+
+    // Mathematical Indicator Calculation Algorithms
+    function calculateSMA(values, period) {
+      const res = [];
+      let sum = 0;
+      for (let i = 0; i < values.length; i++) {
+        sum += (values[i] || 0);
+        if (i >= period) sum -= (values[i - period] || 0);
+        if (i >= period - 1) {
+          res.push(Number((sum / period).toFixed(4)));
+        } else {
+          res.push(values[i] || 0);
+        }
+      }
+      return res;
+    }
+
+    function calculateEMA(values, period) {
+      const res = [];
+      const k = 2 / (period + 1);
+      let ema = values[0] || 0;
+      for (let i = 0; i < values.length; i++) {
+        const val = values[i] || 0;
+        if (i === 0) {
+          ema = val;
+        } else {
+          ema = val * k + ema * (1 - k);
+        }
+        res.push(Number(ema.toFixed(4)));
+      }
+      return res;
+    }
+
+    function calculateBOLL(closes, period = 20, mult = 2.0) {
+      const mid = [];
+      const upper = [];
+      const lower = [];
+      for (let i = 0; i < closes.length; i++) {
+        if (i < period - 1) {
+          const c = closes[i];
+          mid.push(c);
+          upper.push(Number((c * 1.02).toFixed(4)));
+          lower.push(Number((c * 0.98).toFixed(4)));
+          continue;
+        }
+        const slice = closes.slice(i - period + 1, i + 1);
+        const mean = slice.reduce((a, b) => a + b, 0) / period;
+        const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / period;
+        const std = Math.sqrt(variance);
+        mid.push(Number(mean.toFixed(4)));
+        upper.push(Number((mean + mult * std).toFixed(4)));
+        lower.push(Number((mean - mult * std).toFixed(4)));
+      }
+      return { mid, upper, lower };
+    }
+
+    function calculateMACD(closes, fast = 12, slow = 26, signal = 9) {
+      const emaFast = calculateEMA(closes, fast);
+      const emaSlow = calculateEMA(closes, slow);
+      const dif = closes.map((_, i) => Number((emaFast[i] - emaSlow[i]).toFixed(4)));
+      const dea = calculateEMA(dif, signal);
+      const hist = dif.map((d, i) => Number(((d - dea[i]) * 2).toFixed(4)));
+      return { dif, dea, hist };
+    }
+
+    function calculateRSI(closes, period = 14) {
+      const rsi = [];
+      let avgGain = 0;
+      let avgLoss = 0;
+      for (let i = 0; i < closes.length; i++) {
+        if (i === 0) {
+          rsi.push(50.0);
+          continue;
+        }
+        const diff = closes[i] - closes[i - 1];
+        const gain = Math.max(diff, 0);
+        const loss = Math.max(-diff, 0);
+        if (i <= period) {
+          avgGain += gain / period;
+          avgLoss += loss / period;
+          if (i === period) {
+            const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+            rsi.push(Number((100 - (100 / (1 + rs))).toFixed(2)));
+          } else {
+            rsi.push(50.0);
+          }
+        } else {
+          avgGain = (avgGain * (period - 1) + gain) / period;
+          avgLoss = (avgLoss * (period - 1) + loss) / period;
+          const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+          rsi.push(Number((100 - (100 / (1 + rs))).toFixed(2)));
+        }
+      }
+      return rsi;
+    }
+
+    function calculateKDJ(bars, period = 9) {
+      const K = [];
+      const D = [];
+      const J = [];
+      let curK = 50.0;
+      let curD = 50.0;
+      for (let i = 0; i < bars.length; i++) {
+        const start = Math.max(0, i - period + 1);
+        let lowMin = Infinity;
+        let highMax = -Infinity;
+        for (let j = start; j <= i; j++) {
+          if (bars[j][3] < lowMin) lowMin = bars[j][3];
+          if (bars[j][4] > highMax) highMax = bars[j][4];
+        }
+        const close = bars[i][2];
+        const rsv = (highMax === lowMin) ? 50.0 : ((close - lowMin) / (highMax - lowMin)) * 100.0;
+        curK = (2 / 3) * curK + (1 / 3) * rsv;
+        curD = (2 / 3) * curD + (1 / 3) * curK;
+        const curJ = 3 * curK - 2 * curD;
+        K.push(Number(curK.toFixed(2)));
+        D.push(Number(curD.toFixed(2)));
+        J.push(Number(curJ.toFixed(2)));
+      }
+      return { K, D, J };
+    }
+
+    function calculateATR(bars, period = 14) {
+      const trList = [];
+      for (let i = 0; i < bars.length; i++) {
+        const h = bars[i][4];
+        const l = bars[i][3];
+        if (i === 0) {
+          trList.push(h - l);
+        } else {
+          const prevC = bars[i - 1][2];
+          const tr = Math.max(h - l, Math.abs(h - prevC), Math.abs(l - prevC));
+          trList.push(tr);
+        }
+      }
+      const atr = [];
+      let sum = 0;
+      for (let i = 0; i < trList.length; i++) {
+        if (i < period) {
+          sum += trList[i];
+          if (i === period - 1) {
+            atr.push(Number((sum / period).toFixed(4)));
+          } else {
+            atr.push(Number((sum / (i + 1)).toFixed(4)));
+          }
+        } else {
+          const prevATR = atr[i - 1];
+          const curATR = (prevATR * (period - 1) + trList[i]) / period;
+          atr.push(Number(curATR.toFixed(4)));
+        }
+      }
+      return atr;
+    }
+
+    function getGridConfigs(M) {
+      const configs = [];
+      const mainHeight = M === 1 ? 65 : (M === 2 ? 52 : (M === 3 ? 42 : (M === 4 ? 36 : 30)));
+      configs.push({ top: "3%", height: `${mainHeight}%` });
+      
+      const remainTop = 3 + mainHeight + 2;
+      const remainSpace = 91 - remainTop;
+      const gap = 2;
+      const subH = (remainSpace - (M - 1) * gap) / M;
+      
+      for (let i = 0; i < M; i++) {
+        const top = remainTop + i * (subH + gap);
+        configs.push({ top: `${top.toFixed(1)}%`, height: `${subH.toFixed(1)}%` });
+      }
+      return configs;
     }
 
     function initMainChart() {
@@ -1777,13 +2139,29 @@
     }
 
     function renderCandlestickChart(res) {
+      if (!res.ohlcv_bars || res.ohlcv_bars.length === 0) return;
+
       const dates = res.ohlcv_bars.map(d => d[0]);
-      // ECharts candlestick format: [open, close, lowest, highest]
-      const ohlcData = res.ohlcv_bars.map(d => [d[1], d[2], d[3], d[4]]);
-      const volumeData = res.ohlcv_bars.map(d => d[5]);
+      const ohlcData = res.ohlcv_bars.map(d => [Number(d[1]), Number(d[2]), Number(d[3]), Number(d[4])]);
+      const closes = res.ohlcv_bars.map(d => Number(d[2]));
+      const volumes = res.ohlcv_bars.map(d => Number(d[5] || 0));
+
       const zlemaFastData = res.ohlcv_bars.map(d => d[6]);
       const zlemaSlowData = res.ohlcv_bars.map(d => d[7]);
       const supertrendData = res.ohlcv_bars.map(d => d[8]);
+
+      // Calculate indicators
+      const boll = calculateBOLL(closes, 20, 2.0);
+      const ema9 = calculateEMA(closes, 9);
+      const ema21 = calculateEMA(closes, 21);
+      const ema55 = calculateEMA(closes, 55);
+
+      const volMA5 = calculateSMA(volumes, 5);
+      const volMA10 = calculateSMA(volumes, 10);
+      const macd = calculateMACD(closes, 12, 26, 9);
+      const rsi14 = calculateRSI(closes, 14);
+      const kdj = calculateKDJ(res.ohlcv_bars, 9);
+      const atr14 = calculateATR(res.ohlcv_bars, 14);
 
       // Map markers by date for fast tooltip lookup
       const markerMap = {};
@@ -1857,6 +2235,378 @@
         });
       }
 
+      // Configure multi-panel grids
+      const activeSubs = activeSubIndicators.length > 0 ? activeSubIndicators : ["VOL"];
+      const M = activeSubs.length;
+      const gridConfigs = getGridConfigs(M);
+
+      const grids = [];
+      const xAxes = [];
+      const yAxes = [];
+      const series = [];
+
+      // Grid 0: Main Chart
+      grids.push({
+        left: "3%",
+        right: "3%",
+        top: gridConfigs[0].top,
+        height: gridConfigs[0].height
+      });
+
+      xAxes.push({
+        type: "category",
+        gridIndex: 0,
+        data: dates,
+        scale: true,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: "#334155" } },
+        axisLabel: { show: M === 0, color: "#94a3b8", fontSize: 10 }
+      });
+
+      yAxes.push({
+        gridIndex: 0,
+        scale: true,
+        axisLine: { lineStyle: { color: "#334155" } },
+        splitLine: { lineStyle: { color: "#1e293b" } },
+        axisLabel: { color: "#94a3b8", formatter: v => `$${v.toFixed(currentToken === "BONK" ? 6 : 2)}` }
+      });
+
+      // Series for Main Chart
+      series.push({
+        name: "K线 (OHLC)",
+        type: "candlestick",
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: ohlcData,
+        itemStyle: {
+          color: "#10b981",
+          color0: "#ef4444",
+          borderColor: "#10b981",
+          borderColor0: "#ef4444"
+        },
+        markPoint: { data: markPoints },
+        markLine: {
+          symbol: ["circle", "arrow"],
+          symbolSize: [4, 6],
+          lineStyle: { width: 1.5, type: "dashed" },
+          data: markLines
+        }
+      });
+
+      // Overlay Main Indicator
+      if (currentMainIndicator === "zlema") {
+        series.push({
+          name: "快线 ZLEMA(9)",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: zlemaFastData,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#fbbf24", width: 1.5 }
+        });
+        series.push({
+          name: "慢线 ZLEMA(21)",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: zlemaSlowData,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#06b6d4", width: 1.5 }
+        });
+      } else if (currentMainIndicator === "boll") {
+        series.push({
+          name: "BOLL 上轨",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: boll.upper,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#38bdf8", width: 1 }
+        });
+        series.push({
+          name: "BOLL 中轨",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: boll.mid,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#fbbf24", width: 1.5 }
+        });
+        series.push({
+          name: "BOLL 下轨",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: boll.lower,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#38bdf8", width: 1 }
+        });
+      } else if (currentMainIndicator === "supertrend") {
+        series.push({
+          name: "SuperTrend",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: supertrendData,
+          step: "start",
+          showSymbol: false,
+          lineStyle: { color: "#c084fc", width: 1.5, type: "dashed" }
+        });
+      } else if (currentMainIndicator === "ema") {
+        series.push({
+          name: "EMA(9)",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: ema9,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#fbbf24", width: 1.5 }
+        });
+        series.push({
+          name: "EMA(21)",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: ema21,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#06b6d4", width: 1.5 }
+        });
+        series.push({
+          name: "EMA(55)",
+          type: "line",
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: ema55,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#f43f5e", width: 1.5 }
+        });
+      }
+
+      // Configure Subcharts (1 to 5)
+      activeSubs.forEach((sub, idx) => {
+        const gridIdx = idx + 1;
+        grids.push({
+          left: "3%",
+          right: "3%",
+          top: gridConfigs[gridIdx].top,
+          height: gridConfigs[gridIdx].height
+        });
+
+        xAxes.push({
+          type: "category",
+          gridIndex: gridIdx,
+          data: dates,
+          axisLine: { lineStyle: { color: "#334155" } },
+          axisLabel: { show: idx === M - 1, color: "#94a3b8", fontSize: 10 }
+        });
+
+        if (sub === "VOL") {
+          yAxes.push({
+            gridIndex: gridIdx,
+            scale: true,
+            splitNumber: 2,
+            axisLine: { lineStyle: { color: "#334155" } },
+            splitLine: { lineStyle: { color: "#1e293b" } },
+            axisLabel: {
+              color: "#94a3b8",
+              fontSize: 9,
+              formatter: v => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : (v >= 1e3 ? `$${(v / 1e3).toFixed(0)}k` : `$${v.toFixed(0)}`)
+            }
+          });
+
+          series.push({
+            name: "成交量 (USD)",
+            type: "bar",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: volumes,
+            itemStyle: {
+              color: function(params) {
+                const k = ohlcData[params.dataIndex];
+                return k[1] >= k[0] ? "#10b98188" : "#ef444488";
+              }
+            }
+          });
+          series.push({
+            name: "VOL MA(5)",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: volMA5,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#f59e0b", width: 1.2 }
+          });
+          series.push({
+            name: "VOL MA(10)",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: volMA10,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#06b6d4", width: 1.2 }
+          });
+        } else if (sub === "MACD") {
+          yAxes.push({
+            gridIndex: gridIdx,
+            scale: true,
+            splitNumber: 2,
+            axisLine: { lineStyle: { color: "#334155" } },
+            splitLine: { lineStyle: { color: "#1e293b" } },
+            axisLabel: { color: "#94a3b8", fontSize: 9 }
+          });
+
+          series.push({
+            name: "MACD 柱",
+            type: "bar",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: macd.hist,
+            itemStyle: {
+              color: function(params) {
+                return params.data >= 0 ? "#10b981" : "#ef4444";
+              }
+            }
+          });
+          series.push({
+            name: "DIF",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: macd.dif,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#38bdf8", width: 1.5 }
+          });
+          series.push({
+            name: "DEA",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: macd.dea,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#f59e0b", width: 1.5 }
+          });
+        } else if (sub === "RSI") {
+          yAxes.push({
+            gridIndex: gridIdx,
+            min: 0,
+            max: 100,
+            splitNumber: 2,
+            axisLine: { lineStyle: { color: "#334155" } },
+            splitLine: { lineStyle: { color: "#1e293b" } },
+            axisLabel: { color: "#94a3b8", fontSize: 9 }
+          });
+
+          series.push({
+            name: "RSI(14)",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: rsi14,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#a855f7", width: 1.5 },
+            markLine: {
+              silent: true,
+              symbol: "none",
+              lineStyle: { type: "dashed" },
+              data: [
+                { yAxis: 70, lineStyle: { color: "#ef444488" } },
+                { yAxis: 30, lineStyle: { color: "#10b98188" } }
+              ]
+            }
+          });
+        } else if (sub === "KDJ") {
+          yAxes.push({
+            gridIndex: gridIdx,
+            scale: true,
+            splitNumber: 2,
+            axisLine: { lineStyle: { color: "#334155" } },
+            splitLine: { lineStyle: { color: "#1e293b" } },
+            axisLabel: { color: "#94a3b8", fontSize: 9 }
+          });
+
+          series.push({
+            name: "KDJ-K",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: kdj.K,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#f8fafc", width: 1.5 }
+          });
+          series.push({
+            name: "KDJ-D",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: kdj.D,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#facc15", width: 1.5 }
+          });
+          series.push({
+            name: "KDJ-J",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: kdj.J,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#ec4899", width: 1.5 },
+            markLine: {
+              silent: true,
+              symbol: "none",
+              lineStyle: { type: "dashed" },
+              data: [
+                { yAxis: 80, lineStyle: { color: "#ef444466" } },
+                { yAxis: 20, lineStyle: { color: "#10b98166" } }
+              ]
+            }
+          });
+        } else if (sub === "ATR") {
+          yAxes.push({
+            gridIndex: gridIdx,
+            scale: true,
+            splitNumber: 2,
+            axisLine: { lineStyle: { color: "#334155" } },
+            splitLine: { lineStyle: { color: "#1e293b" } },
+            axisLabel: { color: "#94a3b8", fontSize: 9, formatter: v => `$${v.toFixed(currentToken === "BONK" ? 6 : 3)}` }
+          });
+
+          series.push({
+            name: "ATR(14)",
+            type: "line",
+            xAxisIndex: gridIdx,
+            yAxisIndex: gridIdx,
+            data: atr14,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#3b82f6", width: 1.5 },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: "rgba(59, 130, 246, 0.25)" },
+                { offset: 1, color: "rgba(59, 130, 246, 0.0)" }
+              ])
+            }
+          });
+        }
+      });
+
+      const allXAxisIndices = Array.from({ length: M + 1 }, (_, i) => i);
+
       const option = {
         backgroundColor: "transparent",
         animation: false,
@@ -1870,14 +2620,44 @@
             const k = params.find(p => p.seriesName === "K线 (OHLC)");
             if (!k) return "";
             const o = k.data[1], c = k.data[2], l = k.data[3], h = k.data[4];
-            let tip = `<div class="font-bold text-white mb-1">${k.axisValue}</div>`;
-            tip += `开盘: <b>$${o}</b> | 收盘: <b>$${c}</b><br/>最高: <b>$${h}</b> | 最低: <b>$${l}</b><br/>`;
-            const fast = params.find(p => p.seriesName === "快线 ZLEMA(9)");
-            const slow = params.find(p => p.seriesName === "慢线 ZLEMA(21)");
-            const st = params.find(p => p.seriesName === "SuperTrend");
-            if (fast && fast.data !== undefined) tip += `ZLEMA(9): <span style="color:#fbbf24">$${fast.data}</span> | `;
-            if (slow && slow.data !== undefined) tip += `ZLEMA(21): <span style="color:#22d3ee">$${slow.data}</span><br/>`;
-            if (st && st.data !== undefined) tip += `SuperTrend: <span style="color:#c084fc">$${st.data}</span><br/>`;
+            const dataIdx = k.dataIndex;
+            const diffPct = ((c - o) / o * 100).toFixed(2);
+            let tip = `<div class="font-bold text-white mb-1.5 flex justify-between border-b border-slate-700/60 pb-1">
+              <span>${k.axisValue}</span>
+              <span class="${c >= o ? 'text-emerald-400' : 'text-rose-400'}">${diffPct >= 0 ? '+' : ''}${diffPct}%</span>
+            </div>`;
+            tip += `<div class="text-[11px] grid grid-cols-2 gap-x-3 gap-y-0.5 text-slate-300 mb-1">
+              <span>开: <b>$${o}</b></span><span>高: <b>$${h}</b></span>
+              <span>收: <b>$${c}</b></span><span>低: <b>$${l}</b></span>
+            </div>`;
+
+            if (currentMainIndicator === "zlema") {
+              const fast = zlemaFastData[dataIdx];
+              const slow = zlemaSlowData[dataIdx];
+              tip += `<div class="text-[11px] text-slate-300">ZLEMA(9): <span style="color:#fbbf24">$${fast}</span> | (21): <span style="color:#22d3ee">$${slow}</span></div>`;
+            } else if (currentMainIndicator === "boll") {
+              tip += `<div class="text-[11px] text-slate-300">BOLL 上: <span style="color:#38bdf8">$${boll.upper[dataIdx]}</span> | 中: <span style="color:#fbbf24">$${boll.mid[dataIdx]}</span> | 下: <span style="color:#38bdf8">$${boll.lower[dataIdx]}</span></div>`;
+            } else if (currentMainIndicator === "supertrend") {
+              tip += `<div class="text-[11px] text-slate-300">SuperTrend: <span style="color:#c084fc">$${supertrendData[dataIdx]}</span></div>`;
+            } else if (currentMainIndicator === "ema") {
+              tip += `<div class="text-[11px] text-slate-300">EMA 9: <span style="color:#fbbf24">$${ema9[dataIdx]}</span> | 21: <span style="color:#22d3ee">$${ema21[dataIdx]}</span> | 55: <span style="color:#f43f5e">$${ema55[dataIdx]}</span></div>`;
+            }
+
+            activeSubs.forEach(sub => {
+              if (sub === "VOL") {
+                const v = volumes[dataIdx];
+                const vStr = v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(1)}k`;
+                tip += `<div class="text-[11px] text-slate-300 mt-0.5">VOL: <span style="color:#fff">${vStr}</span> | MA5: <span style="color:#f59e0b">$${(volMA5[dataIdx] / 1e3).toFixed(0)}k</span></div>`;
+              } else if (sub === "MACD") {
+                tip += `<div class="text-[11px] text-slate-300 mt-0.5">MACD: DIF: <span style="color:#38bdf8">${macd.dif[dataIdx]}</span> | DEA: <span style="color:#f59e0b">${macd.dea[dataIdx]}</span> | Hist: <span style="color:${macd.hist[dataIdx] >= 0 ? '#10b981' : '#ef4444'}">${macd.hist[dataIdx]}</span></div>`;
+              } else if (sub === "RSI") {
+                tip += `<div class="text-[11px] text-slate-300 mt-0.5">RSI(14): <span style="color:#a855f7;font-weight:bold">${rsi14[dataIdx]}</span></div>`;
+              } else if (sub === "KDJ") {
+                tip += `<div class="text-[11px] text-slate-300 mt-0.5">KDJ: K: <span style="color:#f8fafc">${kdj.K[dataIdx]}</span> | D: <span style="color:#facc15">${kdj.D[dataIdx]}</span> | J: <span style="color:#ec4899">${kdj.J[dataIdx]}</span></div>`;
+              } else if (sub === "ATR") {
+                tip += `<div class="text-[11px] text-slate-300 mt-0.5">ATR(14): <span style="color:#3b82f6;font-weight:bold">$${atr14[dataIdx]}</span></div>`;
+              }
+            });
 
             const curTime = k.axisValue;
             if (markerMap[curTime] && markerMap[curTime].length > 0) {
@@ -1897,108 +2677,14 @@
           }
         },
         axisPointer: { link: [{ xAxisIndex: "all" }] },
-        grid: [
-          { left: "3%", right: "3%", top: "7%", height: "65%" },
-          { left: "3%", right: "3%", top: "76%", height: "18%" }
-        ],
-        xAxis: [
-          {
-            type: "category",
-            data: dates,
-            scale: true,
-            boundaryGap: false,
-            axisLine: { lineStyle: { color: "#334155" } },
-            axisLabel: { color: "#94a3b8", fontSize: 10 }
-          },
-          {
-            type: "category",
-            gridIndex: 1,
-            data: dates,
-            axisLabel: { show: false }
-          }
-        ],
-        yAxis: [
-          {
-            scale: true,
-            axisLine: { lineStyle: { color: "#334155" } },
-            splitLine: { lineStyle: { color: "#1e293b" } },
-            axisLabel: { color: "#94a3b8", formatter: v => `$${v.toFixed(currentToken==="BONK"?6:2)}` }
-          },
-          {
-            scale: true,
-            gridIndex: 1,
-            splitNumber: 2,
-            axisLabel: { show: false },
-            axisLine: { show: false },
-            splitLine: { show: false }
-          }
-        ],
+        grid: grids,
+        xAxis: xAxes,
+        yAxis: yAxes,
         dataZoom: [
-          { type: "inside", xAxisIndex: [0, 1], start: 0, end: 100 },
-          { show: true, xAxisIndex: [0, 1], type: "slider", top: "95%", height: 16, start: 0, end: 100 }
+          { type: "inside", xAxisIndex: allXAxisIndices, start: 0, end: 100 },
+          { show: true, xAxisIndex: allXAxisIndices, type: "slider", top: "95%", height: 16, start: 0, end: 100 }
         ],
-        series: [
-          {
-            name: "K线 (OHLC)",
-            type: "candlestick",
-            data: ohlcData,
-            itemStyle: {
-              color: "#10b981",
-              color0: "#ef4444",
-              borderColor: "#10b981",
-              borderColor0: "#ef4444"
-            },
-            markPoint: {
-              data: markPoints
-            },
-            markLine: {
-              symbol: ["circle", "arrow"],
-              symbolSize: [4, 6],
-              lineStyle: {
-                width: 1.5,
-                type: "dashed"
-              },
-              data: markLines
-            }
-          },
-          {
-            name: "快线 ZLEMA(9)",
-            type: "line",
-            data: zlemaFastData,
-            smooth: true,
-            showSymbol: false,
-            lineStyle: { color: "#fbbf24", width: 1.5 }
-          },
-          {
-            name: "慢线 ZLEMA(21)",
-            type: "line",
-            data: zlemaSlowData,
-            smooth: true,
-            showSymbol: false,
-            lineStyle: { color: "#06b6d4", width: 1.5 }
-          },
-          {
-            name: "SuperTrend",
-            type: "line",
-            data: supertrendData,
-            step: "start",
-            showSymbol: false,
-            lineStyle: { color: "#a855f7", width: 1.5, type: "dashed" }
-          },
-          {
-            name: "成交量 (USD)",
-            type: "bar",
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            data: volumeData,
-            itemStyle: {
-              color: function(params) {
-                const k = ohlcData[params.dataIndex];
-                return k[1] >= k[0] ? "#10b98188" : "#ef444488";
-              }
-            }
-          }
-        ]
+        series: series
       };
 
       mainChartInstance.setOption(option, true);
