@@ -162,6 +162,7 @@
       <!-- Timeframe Selector -->
       <div class="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
         <span class="text-slate-400 px-2 font-medium">周期:</span>
+        <button onclick="setTimeframe('1m')" id="tf_1m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">1m (高频)</button>
         <button onclick="setTimeframe('5m')" id="tf_5m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">5m</button>
         <button onclick="setTimeframe('15m')" id="tf_15m" class="px-2.5 py-1 rounded bg-cyan-600 text-white font-semibold transition">15m (推荐)</button>
         <button onclick="setTimeframe('1h')" id="tf_1h" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">1h</button>
@@ -1339,7 +1340,7 @@
         const sign = netPnl >= 0 ? "+" : "";
 
         return `
-          <tr class="hover:bg-slate-800/40 transition">
+          <tr class="hover:bg-slate-800/60 cursor-pointer transition" onclick="inspectTokenDetailedKLine('${s.symbol}', ${s.trades || 27})">
             <td class="py-2.5 px-3 text-slate-400 font-sans">#${idx + 1}</td>
             <td class="py-2.5 px-3">
               <div class="font-bold text-white flex items-center gap-1.5">
@@ -1351,12 +1352,13 @@
             <td class="py-2.5 px-3 font-mono">$${price.toFixed(pDec)}</td>
             <td class="py-2.5 px-3 font-mono font-bold text-cyan-300">${liqStr}</td>
             <td class="py-2.5 px-3 font-sans">${tierBadge}</td>
-            <td class="py-2.5 px-3 font-mono">${s.trades || 0} 笔</td>
+            <td class="py-2.5 px-3 font-mono font-bold text-white">${s.trades || 0} 笔</td>
             <td class="py-2.5 px-3 font-mono ${(s.win_rate || 0) >= 40 ? 'text-emerald-400' : 'text-slate-300'}">${(s.win_rate || 0).toFixed(1)}%</td>
             <td class="py-2.5 px-3 font-mono font-bold ${pnlColor}">${sign}$${netPnl.toFixed(2)}</td>
             <td class="py-2.5 px-3">
-              <button onclick="selectToken('${s.symbol}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-600 hover:text-white text-slate-300 text-[11px] font-sans transition">
-                切换分析
+              <button onclick="event.stopPropagation(); inspectTokenDetailedKLine('${s.symbol}', ${s.trades || 27})" class="px-2.5 py-1 rounded bg-cyan-900/70 text-cyan-300 hover:bg-cyan-600 hover:text-white border border-cyan-700/70 text-[11px] font-sans font-semibold transition flex items-center gap-1 shadow-sm">
+                <i data-lucide="candlestick-chart" class="w-3.5 h-3.5"></i>
+                <span>查看K线信号</span>
               </button>
             </td>
           </tr>
@@ -1364,7 +1366,47 @@
       }).join('');
     }
 
+    function inspectTokenDetailedKLine(sym, tradeCount) {
+      currentToken = sym;
+      renderTokenSelector();
+      fetchTokenStatus(sym);
+
+      // 1. Force chart mode to candlestick
+      switchChartMode("candlestick");
+
+      // 2. Set timeframe to 1m
+      currentTimeframe = "1m";
+      ["1m", "5m", "15m", "1h", "4h"].forEach(t => {
+        const btn = document.getElementById(`tf_${t}`);
+        if (btn) {
+          if (t === "1m") {
+            btn.className = "px-2.5 py-1 rounded bg-cyan-600 text-white font-semibold transition";
+          } else {
+            btn.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white transition";
+          }
+        }
+      });
+      updateBarsCountOptions("1m");
+
+      // 3. Switch bottom tab to trades ledger
+      switchBottomTab("trades");
+
+      // 4. Smoothly scroll up to the chart container
+      const chartEl = document.getElementById("mainChart");
+      if (chartEl) {
+        chartEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      // 5. Execute 1m backtest for this token
+      executeBacktest(1.0);
+    }
+
     const TIMEFRAME_BARS_OPTIONS = {
+      "1m": [
+        { count: 720, label: "720 根 (约 12 小时，半日超短线)" },
+        { count: 1440, label: "1,440 根 (约 24 小时，全天微观大数样本)", selected: true },
+        { count: 2880, label: "2,880 根 (约 48 小时，双日高频样本)" }
+      ],
       "5m": [
         { count: 1440, label: "1,440 根 (约 5 天，周内高频)" },
         { count: 2880, label: "2,880 根 (约 10 天，双周大数样本)", selected: true },
@@ -1414,12 +1456,14 @@
 
     function setTimeframe(tf) {
       currentTimeframe = tf;
-      ["5m", "15m", "1h", "4h"].forEach(t => {
+      ["1m", "5m", "15m", "1h", "4h"].forEach(t => {
         const btn = document.getElementById(`tf_${t}`);
-        if (t === tf) {
-          btn.className = "px-2.5 py-1 rounded bg-cyan-600 text-white font-semibold transition";
-        } else {
-          btn.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white transition";
+        if (btn) {
+          if (t === tf) {
+            btn.className = "px-2.5 py-1 rounded bg-cyan-600 text-white font-semibold transition";
+          } else {
+            btn.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white transition";
+          }
         }
       });
       updateBarsCountOptions(tf);
@@ -1741,31 +1785,77 @@
       const zlemaSlowData = res.ohlcv_bars.map(d => d[7]);
       const supertrendData = res.ohlcv_bars.map(d => d[8]);
 
+      // Map markers by date for fast tooltip lookup
+      const markerMap = {};
+      (res.chart_markers || []).forEach(m => {
+        const key = m.coord[0];
+        if (!markerMap[key]) markerMap[key] = [];
+        markerMap[key].push(m);
+      });
+
       // ECharts markPoint data for BUY/SELL
-      const markPoints = res.chart_markers.map(m => {
+      const markPoints = (res.chart_markers || []).map(m => {
         const isBuy = m.type === "BUY";
         return {
           name: m.name,
           coord: m.coord,
-          value: m.value,
+          value: isBuy ? "买入" : "平仓",
           symbol: isBuy ? "pin" : "arrow",
           symbolSize: isBuy ? 32 : 28,
           symbolRotate: isBuy ? 0 : 180,
-          symbolOffset: isBuy ? [0, -10] : [0, 10],
+          symbolOffset: isBuy ? [0, -12] : [0, 12],
           itemStyle: {
             color: isBuy ? "#10b981" : "#ef4444",
             borderColor: isBuy ? "#047857" : "#b91c1c",
-            borderWidth: 1.5
+            borderWidth: 1.5,
+            shadowBlur: 8,
+            shadowColor: isBuy ? "rgba(16, 185, 129, 0.6)" : "rgba(239, 68, 68, 0.6)"
           },
           label: {
             show: true,
+            formatter: isBuy ? "买入" : "平仓",
             color: "#ffffff",
-            fontSize: 10,
+            fontSize: 9,
             fontWeight: "bold",
-            offset: isBuy ? [0, -8] : [0, 8]
+            offset: isBuy ? [0, -6] : [0, 6]
           }
         };
       });
+
+      // Trade links: connecting entry and exit with dashed lines
+      let markLines = [];
+      if (res.trade_links && res.trade_links.length > 0) {
+        markLines = res.trade_links.map(link => [
+          {
+            name: link.label,
+            coord: link.entry,
+            lineStyle: {
+              color: link.is_win ? "#10b981" : "#ef4444",
+              type: "dashed",
+              width: 1.5,
+              opacity: 0.85
+            }
+          },
+          { coord: link.exit }
+        ]);
+      } else if (res.trades && res.trades.length > 0) {
+        markLines = res.trades.map((t, idx) => {
+          const isWin = (t.net_pnl_usd ?? t.net_pnl ?? 0) > 0;
+          return [
+            {
+              name: `#${idx + 1}`,
+              coord: [t.entry_time, t.entry_price],
+              lineStyle: {
+                color: isWin ? "#10b981" : "#ef4444",
+                type: "dashed",
+                width: 1.5,
+                opacity: 0.85
+              }
+            },
+            { coord: [t.exit_time, t.exit_price] }
+          ];
+        });
+      }
 
       const option = {
         backgroundColor: "transparent",
@@ -1785,9 +1875,24 @@
             const fast = params.find(p => p.seriesName === "快线 ZLEMA(9)");
             const slow = params.find(p => p.seriesName === "慢线 ZLEMA(21)");
             const st = params.find(p => p.seriesName === "SuperTrend");
-            if (fast) tip += `ZLEMA(9): <span style="color:#fbbf24">$${fast.data}</span> | `;
-            if (slow) tip += `ZLEMA(21): <span style="color:#22d3ee">$${slow.data}</span><br/>`;
-            if (st) tip += `SuperTrend: <span style="color:#c084fc">$${st.data}</span><br/>`;
+            if (fast && fast.data !== undefined) tip += `ZLEMA(9): <span style="color:#fbbf24">$${fast.data}</span> | `;
+            if (slow && slow.data !== undefined) tip += `ZLEMA(21): <span style="color:#22d3ee">$${slow.data}</span><br/>`;
+            if (st && st.data !== undefined) tip += `SuperTrend: <span style="color:#c084fc">$${st.data}</span><br/>`;
+
+            const curTime = k.axisValue;
+            if (markerMap[curTime] && markerMap[curTime].length > 0) {
+              tip += `<div style="margin-top:6px;border-top:1px dashed #475569;padding-top:4px;">`;
+              markerMap[curTime].forEach(m => {
+                const isBuy = m.type === "BUY";
+                const bg = isBuy ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)";
+                const border = isBuy ? "#10b981" : "#ef4444";
+                const txtColor = isBuy ? "#34d399" : "#f87171";
+                tip += `<div style="margin-top:3px;padding:3px 6px;border-radius:4px;background:${bg};border:1px solid ${border};font-size:11px;">
+                  <span style="font-weight:bold;color:${txtColor}">${isBuy ? '🟢 买入开仓' : '🔴 卖出平仓'}</span>: <span style="color:#f8fafc">${m.value || m.name}</span>
+                </div>`;
+              });
+              tip += `</div>`;
+            }
             return tip;
           }
         },
@@ -1829,8 +1934,8 @@
           }
         ],
         dataZoom: [
-          { type: "inside", xAxisIndex: [0, 1], start: 50, end: 100 },
-          { show: true, xAxisIndex: [0, 1], type: "slider", top: "95%", height: 16 }
+          { type: "inside", xAxisIndex: [0, 1], start: 0, end: 100 },
+          { show: true, xAxisIndex: [0, 1], type: "slider", top: "95%", height: 16, start: 0, end: 100 }
         ],
         series: [
           {
@@ -1845,6 +1950,15 @@
             },
             markPoint: {
               data: markPoints
+            },
+            markLine: {
+              symbol: ["circle", "arrow"],
+              symbolSize: [4, 6],
+              lineStyle: {
+                width: 1.5,
+                type: "dashed"
+              },
+              data: markLines
             }
           },
           {

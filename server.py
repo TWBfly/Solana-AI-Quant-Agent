@@ -123,6 +123,15 @@ def run_basket_backtest_api():
         return jsonify({"res_1x": res, "conclusion": "COMPLETED"})
 
 
+@app.route("/api/basket/token/<symbol>", methods=["GET"])
+def get_basket_token_detail(symbol):
+    """Returns high-resolution 1m K-line and full individual trade markers for requested token."""
+    from basket_engine import basket_engine
+    stress_mult = float(request.args.get("stress_mult", 1.0))
+    res = basket_engine.get_token_1m_backtest(symbol=symbol, bars_count=1440, stress_mult=stress_mult)
+    return jsonify(res)
+
+
 @app.route("/api/status", methods=["GET"])
 def get_status():
     """Returns current paper broker status, balances, and live DEX telemetry for requested token."""
@@ -202,6 +211,18 @@ def run_backtest_api():
     stop_loss_mult = float(req.get("stop_loss_mult", 2.0))
     take_profit_mult = float(req.get("take_profit_mult", 3.5))
     bars_count = int(req.get("bars_count", 2500))
+
+    # Fast routing for 1m high-frequency multi-asset universe
+    if timeframe_str == "1m":
+        from basket_engine import basket_engine
+        b_count = bars_count if bars_count in (720, 1440, 2880) else 1440
+        res_1m = basket_engine.get_token_1m_backtest(
+            symbol=token_sym,
+            bars_count=b_count,
+            stress_mult=stress_mult,
+            sol_price=140.0
+        )
+        return jsonify(res_1m)
 
     tf_minutes = 15
     if timeframe_str == "5m":
