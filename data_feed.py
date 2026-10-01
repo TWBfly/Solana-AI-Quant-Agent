@@ -118,6 +118,7 @@ class HistoricalMarketFeed:
             "symbol": "SOL",
             "mint": "So11111111111111111111111111111111111111112",
             "pair": "SOL/USDC",
+            "category": "bluechip",
             "default_price": 135.0,
             "default_liq": 35000000.0
         },
@@ -126,6 +127,7 @@ class HistoricalMarketFeed:
             "symbol": "BTC",
             "mint": "cbbtcf3aa214zHAbiAZJayMMjNUutRrwBp8JTag6Fst",
             "pair": "BTC/USDC",
+            "category": "bluechip",
             "default_price": 64500.0,
             "default_liq": 85000000.0
         },
@@ -134,6 +136,7 @@ class HistoricalMarketFeed:
             "symbol": "ETH",
             "mint": "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
             "pair": "ETH/USDC",
+            "category": "bluechip",
             "default_price": 2650.0,
             "default_liq": 55000000.0
         },
@@ -142,32 +145,243 @@ class HistoricalMarketFeed:
             "symbol": "JUP",
             "mint": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
             "pair": "JUP/USDC",
+            "category": "defi",
             "default_price": 0.85,
-            "default_liq": 8000000.0
+            "default_liq": 12000000.0
         },
         "RAY": {
             "name": "Raydium",
             "symbol": "RAY",
             "mint": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
             "pair": "RAY/USDC",
+            "category": "defi",
             "default_price": 1.95,
-            "default_liq": 6500000.0
+            "default_liq": 9500000.0
         },
         "BONK": {
             "name": "Bonk",
             "symbol": "BONK",
             "mint": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
             "pair": "BONK/USDC",
+            "category": "meme",
             "default_price": 0.000022,
-            "default_liq": 12000000.0
+            "default_liq": 14000000.0
         },
         "WIF": {
             "name": "dogwifhat",
             "symbol": "WIF",
             "mint": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
             "pair": "WIF/USDC",
+            "category": "meme",
             "default_price": 1.80,
-            "default_liq": 20000000.0
+            "default_liq": 22000000.0
+        },
+        "POPCAT": {
+            "name": "Popcat",
+            "symbol": "POPCAT",
+            "mint": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+            "pair": "POPCAT/USDC",
+            "category": "meme",
+            "default_price": 1.25,
+            "default_liq": 18000000.0
+        },
+        "PYTH": {
+            "name": "Pyth Network",
+            "symbol": "PYTH",
+            "mint": "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3",
+            "pair": "PYTH/USDC",
+            "category": "infra",
+            "default_price": 0.35,
+            "default_liq": 8500000.0
+        },
+        "JTO": {
+            "name": "Jito",
+            "symbol": "JTO",
+            "mint": "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
+            "pair": "JTO/USDC",
+            "category": "infra",
+            "default_price": 2.45,
+            "default_liq": 11000000.0
+        },
+        "DRIFT": {
+            "name": "Drift Protocol",
+            "symbol": "DRIFT",
+            "mint": "DriFtupJYLTosbwoN8koMbEYSx54aFAVLddWsbksjwg7",
+            "pair": "DRIFT/USDC",
+            "category": "defi",
+            "default_price": 0.52,
+            "default_liq": 7000000.0
+        },
+        "ORCA": {
+            "name": "Orca",
+            "symbol": "ORCA",
+            "mint": "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
+            "pair": "ORCA/USDC",
+            "category": "defi",
+            "default_price": 2.10,
+            "default_liq": 6000000.0
+        },
+        "KMNO": {
+            "name": "Kamino Finance",
+            "symbol": "KMNO",
+            "mint": "KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS",
+            "pair": "KMNO/USDC",
+            "category": "defi",
+            "default_price": 0.12,
+            "default_liq": 5500000.0
+        },
+        "ME": {
+            "name": "Magic Eden",
+            "symbol": "ME",
+            "mint": "MEFNBXixE4v3nM9Z7U4v796QyJz4aL6N8X7tP9v2YyR",
+            "pair": "ME/USDC",
+            "category": "infra",
+            "default_price": 1.15,
+            "default_liq": 8000000.0
+        },
+        "TNSR": {
+            "name": "Tensor",
+            "symbol": "TNSR",
+            "mint": "TNSRxcUxoT9xBG3de7PiJyTDYu7kskLqcpddxnEJAS6",
+            "pair": "TNSR/USDC",
+            "category": "infra",
+            "default_price": 0.65,
+            "default_liq": 4500000.0
+        },
+        "RENDER": {
+            "name": "Render Network",
+            "symbol": "RENDER",
+            "mint": "rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof",
+            "pair": "RENDER/USDC",
+            "category": "infra",
+            "default_price": 5.80,
+            "default_liq": 16000000.0
+        },
+        "HNT": {
+            "name": "Helium",
+            "symbol": "HNT",
+            "mint": "hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux",
+            "pair": "HNT/USDC",
+            "category": "infra",
+            "default_price": 6.20,
+            "default_liq": 9000000.0
+        },
+        "MOBILE": {
+            "name": "Helium Mobile",
+            "symbol": "MOBILE",
+            "mint": "mb1eu7TzEc71KxDpsmsKoucSSuuoGLv1drys1oP2jh6",
+            "pair": "MOBILE/USDC",
+            "category": "infra",
+            "default_price": 0.0011,
+            "default_liq": 4000000.0
+        },
+        "BOME": {
+            "name": "BOOK OF MEME",
+            "symbol": "BOME",
+            "mint": "ukHH6c7mMyiWCf1b9pnWe25TSpkDDt3H5pQZgZ74J82",
+            "pair": "BOME/USDC",
+            "category": "meme",
+            "default_price": 0.0075,
+            "default_liq": 8500000.0
+        },
+        "MEW": {
+            "name": "cat in a dogs world",
+            "symbol": "MEW",
+            "mint": "MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5",
+            "pair": "MEW/USDC",
+            "category": "meme",
+            "default_price": 0.0065,
+            "default_liq": 10500000.0
+        },
+        "SLERF": {
+            "name": "Slerf",
+            "symbol": "SLERF",
+            "mint": "713rhdnbK2A4qS4G8fG47p5qfFfG2y8hY9R7Qy8eJ1wE",
+            "pair": "SLERF/USDC",
+            "category": "meme",
+            "default_price": 0.18,
+            "default_liq": 4200000.0
+        },
+        "MYRO": {
+            "name": "Myro",
+            "symbol": "MYRO",
+            "mint": "HhJpBhRRn4g56VsyAbT8DLmDAbWP3FsMm9zFZBQXoDAJ",
+            "pair": "MYRO/USDC",
+            "category": "meme",
+            "default_price": 0.095,
+            "default_liq": 3800000.0
+        },
+        "WEN": {
+            "name": "Wen",
+            "symbol": "WEN",
+            "mint": "WENWENvqqNya429ubCdXr7oHootJbJxWCcjiHrSFnTn",
+            "pair": "WEN/USDC",
+            "category": "meme",
+            "default_price": 0.000095,
+            "default_liq": 5200000.0
+        },
+        "SAMO": {
+            "name": "Samoyedcoin",
+            "symbol": "SAMO",
+            "mint": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+            "pair": "SAMO/USDC",
+            "category": "meme",
+            "default_price": 0.0092,
+            "default_liq": 3500000.0
+        },
+        "MOTHER": {
+            "name": "Mother Iggy",
+            "symbol": "MOTHER",
+            "mint": "3S8qX1MsMqRbiwKg2cQnv7noGoMCWPSCUEquwuAApump",
+            "pair": "MOTHER/USDC",
+            "category": "meme",
+            "default_price": 0.065,
+            "default_liq": 4800000.0
+        },
+        "FIDA": {
+            "name": "Bonfida",
+            "symbol": "FIDA",
+            "mint": "EchesyfXePKdLtoiZSL8pBe8Myagyy8ZRqsACNCFGnvp",
+            "pair": "FIDA/USDC",
+            "category": "infra",
+            "default_price": 0.22,
+            "default_liq": 3600000.0
+        },
+        "GOAT": {
+            "name": "Goatseus Maximus",
+            "symbol": "GOAT",
+            "mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuBg9R3",
+            "pair": "GOAT/USDC",
+            "category": "meme",
+            "default_price": 0.65,
+            "default_liq": 12500000.0
+        },
+        "ACT": {
+            "name": "Act I : Prophecy",
+            "symbol": "ACT",
+            "mint": "GJAFwWjJ3vnTsrQVabjBVK2TYB1YtRCQXRDfDgqSpump",
+            "pair": "ACT/USDC",
+            "category": "meme",
+            "default_price": 0.42,
+            "default_liq": 9500000.0
+        },
+        "PNUT": {
+            "name": "Peanut the Squirrel",
+            "symbol": "PNUT",
+            "mint": "2qEHjDLDLbuBgRYvsxhc5RefwhHyJCPGtU9w2KUSpump",
+            "pair": "PNUT/USDC",
+            "category": "meme",
+            "default_price": 0.95,
+            "default_liq": 15000000.0
+        },
+        "MOODENG": {
+            "name": "Moo Deng",
+            "symbol": "MOODENG",
+            "mint": "ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY",
+            "pair": "MOODENG/USDC",
+            "category": "meme",
+            "default_price": 0.28,
+            "default_liq": 7500000.0
         }
     }
 

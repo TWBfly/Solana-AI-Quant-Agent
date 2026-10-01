@@ -50,6 +50,7 @@ def get_tokens():
             "name": info["name"],
             "mint": info["mint"],
             "pair": info["pair"],
+            "category": info.get("category", "other"),
             "default_price": info["default_price"],
             "default_liq": info["default_liq"]
         })

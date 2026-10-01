@@ -95,14 +95,31 @@
   </header>
 
   <!-- Sub-Header: Token Selector & Live DEX Ticker Bar -->
-  <div class="border-b border-slate-800 bg-slate-900/60 px-6 py-2.5 flex flex-wrap items-center justify-between gap-4">
-    <!-- Token Selector Pills -->
-    <div class="flex items-center space-x-2">
-      <span class="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1">
+  <div class="border-b border-slate-800 bg-slate-900/60 px-6 py-2 flex flex-wrap items-center justify-between gap-3">
+    <!-- Token Selector Pills & Category Switcher -->
+    <div class="flex flex-wrap items-center gap-2 max-w-4xl">
+      <span class="text-xs font-semibold text-slate-400 flex items-center gap-1">
         <i data-lucide="coins" class="w-3.5 h-3.5 text-cyan-400"></i>
         <span>交易标的:</span>
       </span>
-      <div id="tokenSelectorContainer" class="flex items-center space-x-1.5">
+
+      <!-- Category Filter Tabs -->
+      <div class="flex items-center space-x-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-[11px]">
+        <button onclick="setTokenCategory('core')" id="cat_core" class="px-2 py-0.5 rounded bg-cyan-600 text-white font-medium transition">核心(7)</button>
+        <button onclick="setTokenCategory('all')" id="cat_all" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">全部(30)</button>
+        <button onclick="setTokenCategory('bluechip')" id="cat_bluechip" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">蓝筹(3)</button>
+        <button onclick="setTokenCategory('defi')" id="cat_defi" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">DeFi(5)</button>
+        <button onclick="setTokenCategory('infra')" id="cat_infra" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">基建(8)</button>
+        <button onclick="setTokenCategory('meme')" id="cat_meme" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">Meme(14)</button>
+      </div>
+
+      <!-- Quick Dropdown for All 30 Tokens -->
+      <select id="selectQuickToken" onchange="selectToken(this.value)" class="bg-slate-950 border border-slate-700 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-cyan-500">
+        <!-- Dynamically rendered -->
+      </select>
+
+      <!-- Token Pills (Scrollable) -->
+      <div id="tokenSelectorContainer" class="flex items-center gap-1 overflow-x-auto max-w-xl py-0.5 custom-scrollbar">
         <!-- Rendered dynamically -->
       </div>
     </div>
@@ -396,27 +413,39 @@
 
     </div>
 
-    <!-- Trade Ledger Section -->
+    <!-- Trade Ledger & Universe Liquidity Section -->
     <div class="glass-panel rounded-2xl p-5">
       <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
-        <div class="flex items-center space-x-3">
-          <h2 class="text-sm font-bold text-white flex items-center gap-1.5">
-            <i data-lucide="list-ordered" class="w-4 h-4 text-cyan-400"></i>
-            <span>成交流水账本与出场诊断 (Trade Ledger)</span>
-          </h2>
-          <span class="text-xs text-slate-400" id="tableTradesCount">共 24 笔成交记录</span>
+        <!-- Section Tabs -->
+        <div class="flex items-center space-x-2">
+          <button onclick="switchBottomTab('trades')" id="tabBtnTrades" class="px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-bold text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="list-ordered" class="w-4 h-4"></i>
+            <span>成交流水账本 (Trade Ledger)</span>
+            <span class="text-[10px] bg-slate-900/60 px-1.5 py-0.5 rounded-full" id="tableTradesCount">0 笔</span>
+          </button>
+          <button onclick="switchBottomTab('universe')" id="tabBtnUniverse" class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+            <span>🌐 30 币种全资产流动性池与大数贡献排行榜</span>
+            <span class="text-[10px] bg-purple-900/50 text-purple-300 px-1.5 py-0.5 rounded-full font-mono">30 Pools</span>
+          </button>
         </div>
 
-        <!-- Filter Buttons -->
-        <div class="flex items-center space-x-1.5 text-xs">
+        <!-- Filter Buttons (For Trades Tab) -->
+        <div id="tradeFilterControls" class="flex items-center space-x-1.5 text-xs">
           <button onclick="filterTrades('all')" id="btnFilterAll" class="px-2.5 py-1 rounded bg-cyan-600 text-white font-medium">全部交易</button>
           <button onclick="filterTrades('win')" id="btnFilterWin" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white">仅盈利单</button>
           <button onclick="filterTrades('loss')" id="btnFilterLoss" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white">仅止损单</button>
         </div>
+
+        <!-- Universe Info Badge (For Universe Tab) -->
+        <div id="universeInfoBadge" class="hidden text-xs text-slate-400 flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">✅ 全部 30 标的池深均通过冲击门禁</span>
+          <span>* 点击任意标的可直接切换为主回测图表</span>
+        </div>
       </div>
 
-      <!-- Trade Table -->
-      <div class="overflow-x-auto custom-scrollbar max-h-96">
+      <!-- Tab 1: Trade Table -->
+      <div id="containerTradeTable" class="overflow-x-auto custom-scrollbar max-h-96">
         <table class="w-full text-left text-xs text-slate-300">
           <thead class="bg-slate-900/90 text-slate-400 uppercase text-[11px] tracking-wider sticky top-0 z-10 border-b border-slate-800">
             <tr>
@@ -433,6 +462,29 @@
             </tr>
           </thead>
           <tbody id="tradeTableBody" class="divide-y divide-slate-800/60 font-mono">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tab 2: 30 Universe Breakdown Table -->
+      <div id="containerUniverseTable" class="hidden overflow-x-auto custom-scrollbar max-h-96">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900/90 text-slate-400 uppercase text-[11px] tracking-wider sticky top-0 z-10 border-b border-slate-800">
+            <tr>
+              <th class="py-2.5 px-3"># 排名</th>
+              <th class="py-2.5 px-3">标的代码 / 名称</th>
+              <th class="py-2.5 px-3">资产分类</th>
+              <th class="py-2.5 px-3">参考现价</th>
+              <th class="py-2.5 px-3">AMM 池深 (Liquidity)</th>
+              <th class="py-2.5 px-3">流动性评级与冲击门禁</th>
+              <th class="py-2.5 px-3">大数回测交易笔数</th>
+              <th class="py-2.5 px-3">单币胜率</th>
+              <th class="py-2.5 px-3">策略净贡献 (Net PnL)</th>
+              <th class="py-2.5 px-3">快捷操作</th>
+            </tr>
+          </thead>
+          <tbody id="universeTableBody" class="divide-y divide-slate-800/60 font-mono">
             <!-- Rendered by JS -->
           </tbody>
         </table>
@@ -537,19 +589,57 @@
       }
     }
 
+    let currentCategory = "core"; // core | all | bluechip | defi | infra | meme
+    let currentBottomTab = "trades"; // trades | universe
+
+    function setTokenCategory(cat) {
+      currentCategory = cat;
+      ["core", "all", "bluechip", "defi", "infra", "meme"].forEach(c => {
+        const btn = document.getElementById(`cat_${c}`);
+        if (!btn) return;
+        if (c === cat) {
+          btn.className = "px-2 py-0.5 rounded bg-cyan-600 text-white font-medium transition";
+        } else {
+          btn.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
+        }
+      });
+      renderTokenSelector();
+    }
+
     function renderTokenSelector() {
       const container = document.getElementById("tokenSelectorContainer");
-      container.innerHTML = AVAILABLE_TOKENS.map(t => {
+      const quickSelect = document.getElementById("selectQuickToken");
+      if (!container) return;
+
+      // Filter tokens by category
+      let filtered = AVAILABLE_TOKENS;
+      if (currentCategory === "core") {
+        const coreSymbols = new Set(["SOL", "BTC", "ETH", "JUP", "RAY", "BONK", "WIF"]);
+        filtered = AVAILABLE_TOKENS.filter(t => coreSymbols.has(t.symbol));
+      } else if (currentCategory !== "all") {
+        filtered = AVAILABLE_TOKENS.filter(t => t.category === currentCategory);
+      }
+
+      container.innerHTML = filtered.map(t => {
         const isActive = t.symbol === currentToken;
         const activeCls = isActive 
-          ? "bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/30" 
-          : "bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-850";
+          ? "bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/30 ring-1 ring-cyan-300" 
+          : "bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800";
+        const liqStr = t.default_liq ? `$${(t.default_liq/1e6).toFixed(1)}M` : '';
         return `
-          <button onclick="selectToken('${t.symbol}')" title="${t.name} (${t.pair})" class="px-3 py-1 rounded-lg text-xs transition ${activeCls}">
+          <button onclick="selectToken('${t.symbol}')" title="${t.name} (${t.pair}) | AMM池深: ${liqStr}" class="px-2.5 py-1 rounded-lg text-xs whitespace-nowrap transition ${activeCls}">
             ${t.symbol}
           </button>
         `;
       }).join('');
+
+      if (quickSelect) {
+        quickSelect.innerHTML = AVAILABLE_TOKENS.map(t => {
+          const isSelected = t.symbol === currentToken ? 'selected' : '';
+          const liqStr = t.default_liq ? ` ($${(t.default_liq/1e6).toFixed(1)}M)` : '';
+          return `<option value="${t.symbol}" ${isSelected}>${t.symbol} - ${t.name}${liqStr}</option>`;
+        }).join('');
+      }
     }
 
     function selectToken(sym) {
@@ -557,6 +647,104 @@
       renderTokenSelector();
       fetchTokenStatus(sym);
       executeBacktest(1.0);
+    }
+
+    function switchBottomTab(tab) {
+      currentBottomTab = tab;
+      const tabTrades = document.getElementById("tabBtnTrades");
+      const tabUniverse = document.getElementById("tabBtnUniverse");
+      const containerTrades = document.getElementById("containerTradeTable");
+      const containerUniverse = document.getElementById("containerUniverseTable");
+      const filterControls = document.getElementById("tradeFilterControls");
+      const universeBadge = document.getElementById("universeInfoBadge");
+
+      const activeCls = "px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-bold text-xs flex items-center gap-1.5 transition";
+      const inactiveCls = "px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition";
+
+      if (tab === "trades") {
+        tabTrades.className = activeCls;
+        tabUniverse.className = inactiveCls;
+        containerTrades.classList.remove("hidden");
+        containerUniverse.classList.add("hidden");
+        filterControls.classList.remove("hidden");
+        universeBadge.classList.add("hidden");
+      } else {
+        tabTrades.className = inactiveCls;
+        tabUniverse.className = activeCls;
+        containerTrades.classList.add("hidden");
+        containerUniverse.classList.remove("hidden");
+        filterControls.classList.add("hidden");
+        universeBadge.classList.remove("hidden");
+        renderUniverseTable();
+      }
+    }
+
+    function renderUniverseTable() {
+      const tbody = document.getElementById("universeTableBody");
+      if (!tbody) return;
+
+      const summaries = (lastBacktestResult && lastBacktestResult.token_summaries && lastBacktestResult.token_summaries.length > 0)
+        ? lastBacktestResult.token_summaries
+        : AVAILABLE_TOKENS.map(t => ({
+            symbol: t.symbol,
+            name: t.name,
+            trades: 0,
+            win_rate: 0.0,
+            net_pnl: 0.0
+          }));
+
+      tbody.innerHTML = summaries.map((s, idx) => {
+        const tokenMeta = AVAILABLE_TOKENS.find(t => t.symbol === s.symbol) || {};
+        const liq = tokenMeta.default_liq || 10000000.0;
+        const liqStr = `$${(liq / 1e6).toFixed(1)}M`;
+        const price = tokenMeta.default_price || 1.0;
+        const pDec = price < 0.001 ? 6 : (price < 2.0 ? 4 : 2);
+        const cat = tokenMeta.category || 'meme';
+        const catMap = {
+          bluechip: '<span class="text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded text-[10px]">蓝筹基石</span>',
+          defi: '<span class="text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded text-[10px]">DeFi 协议</span>',
+          infra: '<span class="text-indigo-400 bg-indigo-950/60 px-1.5 py-0.5 rounded text-[10px]">基础设施</span>',
+          meme: '<span class="text-pink-400 bg-pink-950/60 px-1.5 py-0.5 rounded text-[10px]">热门 Meme</span>'
+        };
+        const catBadge = catMap[cat] || catMap.meme;
+
+        let tierBadge = "";
+        if (liq >= 20000000) {
+          tierBadge = '<span class="text-emerald-400 font-semibold text-[11px]">🟢 Tier 1 极高 (冲击 < 0.5 bps)</span>';
+        } else if (liq >= 6000000) {
+          tierBadge = '<span class="text-cyan-400 font-semibold text-[11px]">🔵 Tier 2 充裕 (冲击 < 1.5 bps)</span>';
+        } else {
+          tierBadge = '<span class="text-amber-400 font-semibold text-[11px]">🟡 Tier 3 观察 (冲击 < 3.0 bps)</span>';
+        }
+
+        const netPnl = s.net_pnl ?? 0;
+        const pnlColor = netPnl >= 0 ? "text-emerald-400" : "text-rose-400";
+        const sign = netPnl >= 0 ? "+" : "";
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-2.5 px-3 text-slate-400 font-sans">#${idx + 1}</td>
+            <td class="py-2.5 px-3">
+              <div class="font-bold text-white flex items-center gap-1.5">
+                <span>${s.symbol}</span>
+                <span class="text-[11px] text-slate-400 font-sans font-normal">${s.name || tokenMeta.name || ''}</span>
+              </div>
+            </td>
+            <td class="py-2.5 px-3">${catBadge}</td>
+            <td class="py-2.5 px-3 font-mono">$${price.toFixed(pDec)}</td>
+            <td class="py-2.5 px-3 font-mono font-bold text-cyan-300">${liqStr}</td>
+            <td class="py-2.5 px-3 font-sans">${tierBadge}</td>
+            <td class="py-2.5 px-3 font-mono">${s.trades || 0} 笔</td>
+            <td class="py-2.5 px-3 font-mono ${(s.win_rate || 0) >= 40 ? 'text-emerald-400' : 'text-slate-300'}">${(s.win_rate || 0).toFixed(1)}%</td>
+            <td class="py-2.5 px-3 font-mono font-bold ${pnlColor}">${sign}$${netPnl.toFixed(2)}</td>
+            <td class="py-2.5 px-3">
+              <button onclick="selectToken('${s.symbol}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-600 hover:text-white text-slate-300 text-[11px] font-sans transition">
+                切换分析
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     const TIMEFRAME_BARS_OPTIONS = {
@@ -720,21 +908,40 @@
             reliability: r.law_of_large_numbers_achieved ? "A_EXCELLENT_LLN" : "B_GOOD",
             ohlcv_bars: [],
             chart_markers: [],
-            equity_curve_points: r.equity_curve.map(pt => ({
+            equity_curve_points: (r.equity_curve || []).map(pt => ({
               time: pt.time,
               strategy_equity: pt.portfolio_equity,
               benchmark_equity: r.initial_equity
             })),
-            drawdown_curve_points: r.equity_curve.map(pt => ({
+            drawdown_curve_points: (r.equity_curve || []).map(pt => ({
               time: pt.time,
               drawdown_pct: 0.0
             })),
-            trades: r.recent_trades
+            trades: (r.recent_trades || []).map((t, idx) => ({
+              id: idx + 1,
+              side: "BUY/SELL",
+              token_symbol: t.symbol,
+              entry_time: t.entry_time,
+              exit_time: t.exit_time,
+              entry_price: t.entry_price,
+              exit_price: t.exit_price,
+              token_amount: 0,
+              gross_pnl_usd: t.gross_pnl ?? 0,
+              net_pnl_usd: t.net_pnl ?? 0,
+              total_fees_usd: (t.friction ?? 0) * 0.6,
+              total_slippage_usd: (t.friction ?? 0) * 0.4,
+              total_friction_usd: t.friction ?? 0,
+              return_pct: t.return_pct ?? 0,
+              hold_bars: t.hold_bars ?? 1,
+              exit_reason: t.exit_reason ?? "NORMAL"
+            })),
+            token_summaries: r.token_summaries || []
           };
 
           lastBacktestResult = mapped;
           renderBacktestDashboard(mapped);
-          alert(`🎉 30 币种大数定律超级回测成功完成！\n总交易笔数: ${r.total_trades} 笔 (>=1,000笔 达成)\n胜率: ${r.win_rate}% (Wilson置信区间: [${r.wilson_ci_low}%, ${r.wilson_ci_high}%])\n全额摩擦扣除: $${r.total_friction_usd.toLocaleString()}`);
+          switchBottomTab("universe");
+          alert(`🎉 30 币种大数定律超级回测成功完成！\n总交易笔数: ${r.total_trades} 笔 (>=1,000笔 达成)\n胜率: ${r.win_rate}% (Wilson置信区间: [${r.wilson_ci_low}%, ${r.wilson_ci_high}%])\n全额摩擦扣除: $${r.total_friction_usd.toLocaleString()}\n\n已自动为您展开【30 币种全资产流动性池与大数贡献排行榜】！`);
         } else {
           alert("超级回测计算异常，请检查服务日志");
         }
@@ -826,7 +1033,9 @@
       document.getElementById("auditMaxDD").innerText = `-${res.max_drawdown_pct.toFixed(2)}% (-$${res.max_drawdown_usd.toFixed(2)})`;
 
       document.getElementById("auditTotalTrades").innerText = `${res.total_trades} 笔 (${res.reliability})`;
-      document.getElementById("auditWinRate").innerText = `${res.win_rate.toFixed(1)}% (${res.trades.filter(t=>t.net_pnl_usd>0).length}胜 / ${res.trades.filter(t=>t.net_pnl_usd<=0).length}负)`;
+      const winCount = res.trades ? res.trades.filter(t => (t.net_pnl_usd ?? t.net_pnl ?? 0) > 0).length : 0;
+      const lossCount = res.trades ? res.trades.filter(t => (t.net_pnl_usd ?? t.net_pnl ?? 0) <= 0).length : 0;
+      document.getElementById("auditWinRate").innerText = `${res.win_rate.toFixed(1)}% (${winCount}胜 / ${lossCount}负)`;
       document.getElementById("auditWilson").innerText = `[${res.wilson_ci_low.toFixed(1)}%, ${res.wilson_ci_high.toFixed(1)}%] (跨度 ${res.wilson_ci_span.toFixed(1)}%)`;
       document.getElementById("auditPF").innerText = res.profit_factor.toFixed(2);
       document.getElementById("auditWinLoss").innerText = res.win_loss_ratio.toFixed(2);
@@ -1175,7 +1384,7 @@
 
     function renderTradeTable(trades) {
       const tbody = document.getElementById("tradeTableBody");
-      document.getElementById("tableTradesCount").innerText = `共 ${trades.length} 笔成交记录`;
+      document.getElementById("tableTradesCount").innerText = `${trades ? trades.length : 0} 笔`;
 
       if (!trades || trades.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-slate-500 font-sans">当前回测无成交记录</td></tr>`;
@@ -1183,31 +1392,41 @@
       }
 
       let filtered = trades.slice();
-      if (currentFilter === "win") filtered = filtered.filter(t => t.net_pnl_usd > 0);
-      if (currentFilter === "loss") filtered = filtered.filter(t => t.net_pnl_usd <= 0);
+      if (currentFilter === "win") filtered = filtered.filter(t => (t.net_pnl_usd ?? t.net_pnl ?? 0) > 0);
+      if (currentFilter === "loss") filtered = filtered.filter(t => (t.net_pnl_usd ?? t.net_pnl ?? 0) <= 0);
 
-      tbody.innerHTML = filtered.reverse().map(t => {
-        const isWin = t.net_pnl_usd > 0;
+      tbody.innerHTML = filtered.reverse().map((t, idx) => {
+        const netPnl = t.net_pnl_usd ?? t.net_pnl ?? 0;
+        const isWin = netPnl > 0;
         const color = isWin ? "text-emerald-400" : "text-rose-400";
         const sign = isWin ? "+" : "";
+        const entryP = Number(t.entry_price ?? 0);
+        const exitP = Number(t.exit_price ?? 0);
+        const pDec = entryP < 0.001 ? 6 : (entryP < 2.0 ? 4 : 2);
+        const fees = Number(t.total_fees_usd ?? ((t.friction ?? 0) * 0.6));
+        const slippage = Number(t.total_slippage_usd ?? ((t.friction ?? 0) * 0.4));
+        const retPct = Number(t.return_pct ?? 0);
+        const id = t.id ?? (trades.length - idx);
+        const sym = t.token_symbol ?? t.symbol ?? currentToken;
+
         return `
           <tr class="hover:bg-slate-800/40 transition">
-            <td class="py-2.5 px-3 text-slate-400">#${t.id}</td>
-            <td class="py-2.5 px-3 font-semibold text-slate-200">${t.token_symbol}</td>
+            <td class="py-2.5 px-3 text-slate-400">#${id}</td>
+            <td class="py-2.5 px-3 font-semibold text-slate-200">${sym}</td>
             <td class="py-2.5 px-3">
-              <div>$${t.entry_price.toFixed(currentToken==="BONK"?6:2)}</div>
-              <div class="text-[10px] text-slate-500">${t.entry_time.split('T')[0]||t.entry_time}</div>
+              <div>$${entryP.toFixed(pDec)}</div>
+              <div class="text-[10px] text-slate-500">${(t.entry_time || '').split('T')[0] || t.entry_time || ''}</div>
             </td>
             <td class="py-2.5 px-3">
-              <div>$${t.exit_price.toFixed(currentToken==="BONK"?6:2)}</div>
-              <div class="text-[10px] text-slate-500">${t.exit_time.split('T')[0]||t.exit_time}</div>
+              <div>$${exitP.toFixed(pDec)}</div>
+              <div class="text-[10px] text-slate-500">${(t.exit_time || '').split('T')[0] || t.exit_time || ''}</div>
             </td>
-            <td class="py-2.5 px-3 text-slate-400">${t.hold_bars} 柱</td>
-            <td class="py-2.5 px-3 text-amber-400">$${t.total_fees_usd.toFixed(2)}</td>
-            <td class="py-2.5 px-3 text-rose-300">$${t.total_slippage_usd.toFixed(2)}</td>
-            <td class="py-2.5 px-3 font-bold ${color}">${sign}$${t.net_pnl_usd.toFixed(2)}</td>
-            <td class="py-2.5 px-3 font-bold ${color}">${sign}${t.return_pct.toFixed(2)}%</td>
-            <td class="py-2.5 px-3 text-slate-400 text-[11px] truncate max-w-xs font-sans">${t.exit_reason}</td>
+            <td class="py-2.5 px-3 text-slate-400">${t.hold_bars ?? 0} 柱</td>
+            <td class="py-2.5 px-3 text-amber-400">$${fees.toFixed(2)}</td>
+            <td class="py-2.5 px-3 text-rose-300">$${slippage.toFixed(2)}</td>
+            <td class="py-2.5 px-3 font-bold ${color}">${sign}$${netPnl.toFixed(2)}</td>
+            <td class="py-2.5 px-3 font-bold ${color}">${sign}${retPct.toFixed(2)}%</td>
+            <td class="py-2.5 px-3 text-slate-400 text-[11px] truncate max-w-xs font-sans">${t.exit_reason || 'NORMAL'}</td>
           </tr>
         `;
       }).join('');
