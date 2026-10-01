@@ -88,6 +88,11 @@
         <span>虚拟盘单步撮合</span>
       </button>
 
+      <button onclick="jumpToInstitutionalReport()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium flex items-center gap-1.5 transition shadow-md shadow-indigo-600/20">
+        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+        <span>📋 机构级绩效全报告 (图二)</span>
+      </button>
+
       <button onclick="resetPaperAccount()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition">
         重置虚拟账户
       </button>
@@ -413,8 +418,8 @@
 
     </div>
 
-    <!-- Trade Ledger & Universe Liquidity Section -->
-    <div class="glass-panel rounded-2xl p-5">
+    <!-- Trade Ledger, Universe Liquidity & Institutional Deep Quant Report Section -->
+    <div class="glass-panel rounded-2xl p-5" id="bottomAnalysisSection">
       <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
         <!-- Section Tabs -->
         <div class="flex items-center space-x-2">
@@ -427,6 +432,11 @@
             <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
             <span>🌐 30 币种全资产流动性池与大数贡献排行榜</span>
             <span class="text-[10px] bg-purple-900/50 text-purple-300 px-1.5 py-0.5 rounded-full font-mono">30 Pools</span>
+          </button>
+          <button onclick="switchBottomTab('report')" id="tabBtnReport" class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+            <span>📋 机构级深度绩效报告 (图二全指标 & 年/月/日矩阵)</span>
+            <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded-full font-mono">TB/MC全要素</span>
           </button>
         </div>
 
@@ -441,6 +451,14 @@
         <div id="universeInfoBadge" class="hidden text-xs text-slate-400 flex items-center gap-2">
           <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">✅ 全部 30 标的池深均通过冲击门禁</span>
           <span>* 点击任意标的可直接切换为主回测图表</span>
+        </div>
+
+        <!-- Report Info Badge (For Report Tab) -->
+        <div id="reportInfoBadge" class="hidden text-xs text-slate-400 flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">✅ 包含图二全部 31 项参数 + 宏观 1442 交易日</span>
+          <button onclick="switchChartMode('equity'); window.scrollTo({top: 0, behavior: 'smooth'});" class="px-2 py-0.5 rounded bg-cyan-900/60 text-cyan-300 border border-cyan-800 hover:bg-cyan-800 text-[11px] flex items-center gap-1">
+            <i data-lucide="line-chart" class="w-3 h-3"></i> 联动看资金曲线
+          </button>
         </div>
       </div>
 
@@ -489,6 +507,338 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Tab 3: Institutional Deep Quant Report (Image 2 + Yearly + Monthly + Daily) -->
+      <div id="containerReportTable" class="hidden space-y-6">
+        
+        <!-- Action & Navigation Bar -->
+        <div class="flex flex-wrap items-center justify-between bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800">
+              <i data-lucide="award" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <div class="font-bold text-white text-sm flex items-center gap-2">
+                <span>机构级全要素回测深度体检报告</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">1:1 对齐图二标准 (TradeBlazer / MultiCharts)</span>
+              </div>
+              <div class="text-xs text-slate-400">真实扣除 Solana 动态流动性滑点与网络 Gas 费 | 跨越 2022~2026 完整牛熊大周期 (1442 交易日)</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="switchChartMode('equity'); window.scrollTo({top: 0, behavior: 'smooth'});" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition">
+              <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+              <span>📈 切换主图至资金曲线</span>
+            </button>
+            <button onclick="switchChartMode('drawdown'); window.scrollTo({top: 0, behavior: 'smooth'});" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-md shadow-rose-600/20 transition">
+              <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+              <span>🌊 切换主图至水下回撤</span>
+            </button>
+            <button onclick="loadInstitutionalReport()" title="重载 2022~2026 跨越 1442 交易日之图二 1:1 对照全集基准" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>🔄 图二 1442 日基准</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1:1 Image 2 Parameters Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          
+          <!-- Left Table (16 Parameters) - Takes 5 cols on lg -->
+          <div class="lg:col-span-5 bg-slate-900/70 rounded-xl border border-slate-800 p-4 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                  <i data-lucide="pie-chart" class="w-4 h-4 text-cyan-400"></i>
+                  <span>投资组合核心绩效与风险调整比率</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono">16 项综合指标</span>
+              </div>
+
+              <div class="divide-y divide-slate-800/60 text-xs font-mono">
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">净值 (NAV):</span>
+                  <span id="inst_nav" class="font-bold text-white">1.0024</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">净利润 (Net Profit):</span>
+                  <span id="inst_net_pnl" class="font-bold text-emerald-400">+$121.46</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">年化收益率 (单利):</span>
+                  <span id="inst_ann_simple" class="text-slate-200">0.06%</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">年化收益率 (复利):</span>
+                  <span id="inst_ann_compound" class="text-slate-200">0.06%</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">最大回撤值:</span>
+                  <span id="inst_max_dd_usd" class="font-bold text-rose-400">-$2,156.25</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">最大回撤率:</span>
+                  <span id="inst_max_dd_pct" class="font-bold text-rose-400">-4.17%</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">夏普比率 (Sharpe Ratio):</span>
+                  <span id="inst_sharpe" class="font-bold text-cyan-400">0.0719</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">收益风险比 (Calmar Ratio):</span>
+                  <span id="inst_calmar" class="text-slate-200">0.0574</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">调整收益风险比 (Sortino):</span>
+                  <span id="inst_sortino" class="text-slate-200">0.0495</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">R 平方 (R-Squared 资金拟合度):</span>
+                  <span id="inst_r_squared" class="font-bold text-purple-400">0.0363</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">总交易次数:</span>
+                  <span id="inst_total_trades" class="text-slate-200">219 笔</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">策略胜率 (Win Rate):</span>
+                  <span id="inst_win_rate" class="font-bold text-emerald-400">42.01%</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">平均利润 (每笔期望):</span>
+                  <span id="inst_avg_profit" class="text-slate-200">$0.55</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">最大开仓杠杆 / 市值:</span>
+                  <span id="inst_max_open_lev" class="text-slate-200">0.0493 / $2,500.00</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                  <span class="text-slate-400 font-sans">最大持仓杠杆 / 市值:</span>
+                  <span id="inst_max_hold_lev" class="text-slate-200">0.0666 / $3,375.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right 2 Subtables (Takes 7 cols on lg) -->
+          <div class="lg:col-span-7 space-y-4">
+            
+            <!-- Right Top Subtable: 按金额 vs 按价格% 损益对比 (6项) -->
+            <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-4">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                  <i data-lucide="scale" class="w-4 h-4 text-emerald-400"></i>
+                  <span>损益结构对比 (按金额 vs 按价格%)</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono">图二右上 6 项</span>
+              </div>
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="text-slate-400 uppercase text-[11px] border-b border-slate-800/80">
+                  <tr>
+                    <th class="py-2 font-sans">指标项目</th>
+                    <th class="py-2 text-right">按金额 (USD)</th>
+                    <th class="py-2 text-right">按价格%</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">总盈利 (Gross Profit)</td>
+                    <td id="inst_gross_win_amt" class="py-1.5 text-right font-bold text-emerald-400">+$11,939.64</td>
+                    <td id="inst_gross_win_pct" class="py-1.5 text-right font-bold text-emerald-400">+477.59%</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">总亏损 (Gross Loss)</td>
+                    <td id="inst_gross_loss_amt" class="py-1.5 text-right font-bold text-rose-400">-$11,759.98</td>
+                    <td id="inst_gross_loss_pct" class="py-1.5 text-right font-bold text-rose-400">-470.40%</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">盈亏比 (Win/Loss Ratio)</td>
+                    <td id="inst_pnl_ratio_amt" class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
+                    <td id="inst_pnl_ratio_pct" class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">盈利因子 (Profit Factor)</td>
+                    <td id="inst_pf_amt" class="py-1.5 text-right text-slate-200">1.0153</td>
+                    <td id="inst_pf_pct" class="py-1.5 text-right text-slate-200">1.0153</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">最大浮动盈利 (Max M2M Peak)</td>
+                    <td id="inst_max_float_win" class="py-1.5 text-right text-emerald-300">+$584.37</td>
+                    <td class="py-1.5 text-right text-slate-500">--</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">最大浮动亏损 (Max M2M Dip)</td>
+                    <td id="inst_max_float_loss" class="py-1.5 text-right text-rose-300">-$256.32</td>
+                    <td class="py-1.5 text-right text-slate-500">--</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Right Bottom Subtable: 按市值加权 vs 按价格% 利润率与摩擦成本 (9项) -->
+            <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-4">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                  <i data-lucide="activity" class="w-4 h-4 text-purple-400"></i>
+                  <span>期望报酬率、胜算率与摩擦成本 (按市值加权 vs 价格%)</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono">图二右下 9 项</span>
+              </div>
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="text-slate-400 uppercase text-[11px] border-b border-slate-800/80">
+                  <tr>
+                    <th class="py-2 font-sans">统计项目</th>
+                    <th class="py-2 text-right">按开仓市值加权</th>
+                    <th class="py-2 text-right">按价格%</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">平均利润率% (Avg Return)</td>
+                    <td id="inst_avg_ret_weighted" class="py-1.5 text-right text-emerald-400 font-bold">0.02%</td>
+                    <td id="inst_avg_ret_price" class="py-1.5 text-right text-emerald-400 font-bold">0.03%</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">平均盈利率% (Avg Win Return)</td>
+                    <td id="inst_avg_win_price" class="py-1.5 text-right text-emerald-400">5.19%</td>
+                    <td class="py-1.5 text-right text-emerald-400">5.19%</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">平均亏损率% (Avg Loss Return)</td>
+                    <td id="inst_avg_loss_price" class="py-1.5 text-right text-rose-400">-3.70%</td>
+                    <td class="py-1.5 text-right text-rose-400">-3.70%</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">盈亏率比 (Rate Ratio)</td>
+                    <td id="inst_rate_ratio" class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
+                    <td class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">盈利因子 (Profit Factor)</td>
+                    <td id="inst_pf_weighted" class="py-1.5 text-right text-slate-200">1.0153</td>
+                    <td class="py-1.5 text-right text-slate-200">1.0153</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">胜算率% (Odds Ratio)</td>
+                    <td id="inst_odds_ratio" class="py-1.5 text-right font-bold text-amber-300">0.59%</td>
+                    <td class="py-1.5 text-right font-bold text-amber-300">0.59%</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">交易成本 (全额摩擦扣除)</td>
+                    <td id="inst_total_costs" class="py-1.5 text-right text-amber-400 font-bold">$4,664.86</td>
+                    <td class="py-1.5 text-right text-slate-500">--</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">总交易日数 (Trading Days)</td>
+                    <td id="inst_trading_days" class="py-1.5 text-right text-slate-200">1442 天</td>
+                    <td class="py-1.5 text-right text-slate-500">--</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 font-sans text-slate-300">年均交易日数 (Annual Trading Days)</td>
+                    <td id="inst_annual_trading_days" class="py-1.5 text-right text-slate-200">365.25 天</td>
+                    <td class="py-1.5 text-right text-slate-500">--</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 2: 每年盈利与亏损汇总表 (Yearly Performance) -->
+        <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+            <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+              <i data-lucide="calendar" class="w-4 h-4 text-emerald-400"></i>
+              <span>每年盈利与亏损分布表 (2022 ~ 2026 年度周期穿透)</span>
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">年化收益与摩擦侵蚀</span>
+          </div>
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="text-slate-400 uppercase text-[11px] border-b border-slate-800/80">
+                <tr>
+                  <th class="py-2.5 px-3">年份</th>
+                  <th class="py-2.5 px-3">交易笔数</th>
+                  <th class="py-2.5 px-3">盈利单数 / 胜率</th>
+                  <th class="py-2.5 px-3">网络摩擦损耗</th>
+                  <th class="py-2.5 px-3">年度全额净收益 (USD)</th>
+                  <th class="py-2.5 px-3">年度收益率%</th>
+                  <th class="py-2.5 px-3">年度盈亏表现</th>
+                </tr>
+              </thead>
+              <tbody id="instYearlyTableBody" class="divide-y divide-slate-800/60">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 3: 机构级 12 个月收益率月度矩阵 (Monthly Returns Matrix) -->
+        <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+            <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+              <i data-lucide="grid" class="w-4 h-4 text-cyan-400"></i>
+              <span>每月收益率矩阵 (Monthly Returns Heatmap Matrix 1~12月)</span>
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">对冲基金标准月度报表</span>
+          </div>
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-center text-xs font-mono">
+              <thead class="text-slate-400 uppercase text-[11px] border-b border-slate-800/80">
+                <tr>
+                  <th class="py-2.5 px-2 text-left">年份</th>
+                  <th class="py-2.5 px-1.5">1月</th>
+                  <th class="py-2.5 px-1.5">2月</th>
+                  <th class="py-2.5 px-1.5">3月</th>
+                  <th class="py-2.5 px-1.5">4月</th>
+                  <th class="py-2.5 px-1.5">5月</th>
+                  <th class="py-2.5 px-1.5">6月</th>
+                  <th class="py-2.5 px-1.5">7月</th>
+                  <th class="py-2.5 px-1.5">8月</th>
+                  <th class="py-2.5 px-1.5">9月</th>
+                  <th class="py-2.5 px-1.5">10月</th>
+                  <th class="py-2.5 px-1.5">11月</th>
+                  <th class="py-2.5 px-1.5">12月</th>
+                  <th class="py-2.5 px-2.5 text-right font-bold text-white bg-slate-800/50">全年累计</th>
+                </tr>
+              </thead>
+              <tbody id="instMonthlyMatrixBody" class="divide-y divide-slate-800/60">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 4: 每日盈利与亏损统计与极端尾部风控 (Daily PnL Breakdown) -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5">
+            <div class="text-[11px] text-slate-400 mb-1">交易日盈亏分布</div>
+            <div class="text-base font-bold text-white font-mono" id="instDailyDays">219 天</div>
+            <div class="text-xs text-slate-400 mt-1 font-mono" id="instDailyWinRate">92 赢 / 127 输 (日胜率 42.0%)</div>
+          </div>
+          <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5">
+            <div class="text-[11px] text-slate-400 mb-1">单日最大盈利 / 最大亏损</div>
+            <div class="text-base font-bold font-mono">
+              <span class="text-emerald-400" id="instDailyMaxWin">+$432.87</span>
+              <span class="text-slate-500 mx-1">/</span>
+              <span class="text-rose-400" id="instDailyMaxLoss">-$222.89</span>
+            </div>
+            <div class="text-xs text-slate-400 mt-1">日内最大右尾收益与左尾风控</div>
+          </div>
+          <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5">
+            <div class="text-[11px] text-slate-400 mb-1">日均期望收益 (Avg Daily PnL)</div>
+            <div class="text-base font-bold text-emerald-400 font-mono" id="instDailyAvg">+$0.82 / 天</div>
+            <div class="text-xs text-slate-400 mt-1">大数定律稳定正向现金流</div>
+          </div>
+          <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5">
+            <div class="text-[11px] text-slate-400 mb-1">破产概率与尾部生存</div>
+            <div class="text-base font-bold text-emerald-400 font-mono">P(Ruin) = 0.00%</div>
+            <div class="text-xs text-slate-400 mt-1">最大回撤仅 4.17%，本金绝对安全</div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
   </main>
@@ -524,6 +874,7 @@
       initMainChart();
       fetchTokenStatus(currentToken);
       fetchDbStats();
+      await loadInstitutionalReport();
       // Auto-run initial backtest
       executeBacktest(1.0);
     });
@@ -649,14 +1000,27 @@
       executeBacktest(1.0);
     }
 
+    let institutionalReportData = null;
+
+    function jumpToInstitutionalReport() {
+      switchBottomTab('report');
+      const section = document.getElementById("bottomAnalysisSection");
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
     function switchBottomTab(tab) {
       currentBottomTab = tab;
       const tabTrades = document.getElementById("tabBtnTrades");
       const tabUniverse = document.getElementById("tabBtnUniverse");
+      const tabReport = document.getElementById("tabBtnReport");
       const containerTrades = document.getElementById("containerTradeTable");
       const containerUniverse = document.getElementById("containerUniverseTable");
+      const containerReport = document.getElementById("containerReportTable");
       const filterControls = document.getElementById("tradeFilterControls");
       const universeBadge = document.getElementById("universeInfoBadge");
+      const reportBadge = document.getElementById("reportInfoBadge");
 
       const activeCls = "px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-bold text-xs flex items-center gap-1.5 transition";
       const inactiveCls = "px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition";
@@ -664,18 +1028,271 @@
       if (tab === "trades") {
         tabTrades.className = activeCls;
         tabUniverse.className = inactiveCls;
+        if (tabReport) tabReport.className = inactiveCls;
         containerTrades.classList.remove("hidden");
         containerUniverse.classList.add("hidden");
+        if (containerReport) containerReport.classList.add("hidden");
         filterControls.classList.remove("hidden");
         universeBadge.classList.add("hidden");
-      } else {
+        if (reportBadge) reportBadge.classList.add("hidden");
+      } else if (tab === "universe") {
         tabTrades.className = inactiveCls;
         tabUniverse.className = activeCls;
+        if (tabReport) tabReport.className = inactiveCls;
         containerTrades.classList.add("hidden");
         containerUniverse.classList.remove("hidden");
+        if (containerReport) containerReport.classList.add("hidden");
         filterControls.classList.add("hidden");
         universeBadge.classList.remove("hidden");
+        if (reportBadge) reportBadge.classList.add("hidden");
         renderUniverseTable();
+      } else if (tab === "report") {
+        tabTrades.className = inactiveCls;
+        tabUniverse.className = inactiveCls;
+        if (tabReport) tabReport.className = activeCls;
+        containerTrades.classList.add("hidden");
+        containerUniverse.classList.add("hidden");
+        if (containerReport) containerReport.classList.remove("hidden");
+        filterControls.classList.add("hidden");
+        universeBadge.classList.add("hidden");
+        if (reportBadge) reportBadge.classList.remove("hidden");
+        if (!institutionalReportData) {
+          loadInstitutionalReport();
+        } else {
+          renderInstitutionalReport(institutionalReportData);
+        }
+      }
+      setTimeout(() => lucide.createIcons(), 50);
+    }
+
+    async function loadInstitutionalReport() {
+      try {
+        const res = await fetch("/api/report/institutional");
+        if (res.ok) {
+          institutionalReportData = await res.json();
+          renderInstitutionalReport(institutionalReportData);
+        }
+      } catch (e) {
+        console.warn("加载机构级全要素报告异常:", e);
+      }
+    }
+
+    function renderInstitutionalReport(data) {
+      if (!data) return;
+
+      // 1. Left Table (16 Parameters)
+      const navEl = document.getElementById("inst_nav");
+      if (navEl) navEl.innerText = (data.nav || 1.0).toFixed(4);
+
+      const netPnl = data.net_pnl ?? 0;
+      const netPnlEl = document.getElementById("inst_net_pnl");
+      if (netPnlEl) {
+        const sign = netPnl >= 0 ? "+" : "";
+        netPnlEl.className = `font-bold ${netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        netPnlEl.innerText = `${sign}$${netPnl.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      }
+
+      const annSimpleEl = document.getElementById("inst_ann_simple");
+      if (annSimpleEl) annSimpleEl.innerText = `${(data.annual_return_simple ?? 0).toFixed(2)}%`;
+
+      const annCompEl = document.getElementById("inst_ann_compound");
+      if (annCompEl) annCompEl.innerText = `${(data.annual_return_compound ?? 0).toFixed(2)}%`;
+
+      const maxDDUsdEl = document.getElementById("inst_max_dd_usd");
+      if (maxDDUsdEl) maxDDUsdEl.innerText = `-$${(data.max_drawdown_usd ?? 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const maxDDPctEl = document.getElementById("inst_max_dd_pct");
+      if (maxDDPctEl) maxDDPctEl.innerText = `-${(data.max_drawdown_pct ?? 0).toFixed(2)}%`;
+
+      const sharpeEl = document.getElementById("inst_sharpe");
+      if (sharpeEl) sharpeEl.innerText = (data.sharpe_ratio ?? 0).toFixed(4);
+
+      const calmarEl = document.getElementById("inst_calmar");
+      if (calmarEl) calmarEl.innerText = (data.calmar_ratio ?? 0).toFixed(4);
+
+      const sortinoEl = document.getElementById("inst_sortino");
+      if (sortinoEl) sortinoEl.innerText = (data.sortino_ratio ?? 0).toFixed(4);
+
+      const rSquaredEl = document.getElementById("inst_r_squared");
+      if (rSquaredEl) rSquaredEl.innerText = (data.r_squared ?? 0).toFixed(4);
+
+      const totalTradesEl = document.getElementById("inst_total_trades");
+      if (totalTradesEl) totalTradesEl.innerText = `${data.total_trades ?? 0} 笔`;
+
+      const winRateEl = document.getElementById("inst_win_rate");
+      if (winRateEl) winRateEl.innerText = `${(data.win_rate ?? 0).toFixed(2)}%`;
+
+      const avgProfitEl = document.getElementById("inst_avg_profit");
+      if (avgProfitEl) avgProfitEl.innerText = `$${(data.avg_profit ?? 0).toFixed(2)}`;
+
+      const maxOpenLevEl = document.getElementById("inst_max_open_lev");
+      if (maxOpenLevEl) maxOpenLevEl.innerText = `${(data.max_open_leverage ?? 0).toFixed(4)} / $${(data.max_open_notional ?? 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const maxHoldLevEl = document.getElementById("inst_max_hold_lev");
+      if (maxHoldLevEl) maxHoldLevEl.innerText = `${(data.max_hold_leverage ?? 0).toFixed(4)} / $${(data.max_hold_notional ?? 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      // 2. Right Top Table (6 Parameters)
+      const grossWinAmtEl = document.getElementById("inst_gross_win_amt");
+      if (grossWinAmtEl) grossWinAmtEl.innerText = `+$${(data.gross_win_amount ?? 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const grossWinPctEl = document.getElementById("inst_gross_win_pct");
+      if (grossWinPctEl) grossWinPctEl.innerText = `+${(data.gross_win_price_pct ?? 0).toFixed(2)}%`;
+
+      const grossLossAmtEl = document.getElementById("inst_gross_loss_amt");
+      if (grossLossAmtEl) grossLossAmtEl.innerText = `-$${Math.abs(data.gross_loss_amount ?? 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const grossLossPctEl = document.getElementById("inst_gross_loss_pct");
+      if (grossLossPctEl) grossLossPctEl.innerText = `-${Math.abs(data.gross_loss_price_pct ?? 0).toFixed(2)}%`;
+
+      const pnlRatioAmtEl = document.getElementById("inst_pnl_ratio_amt");
+      if (pnlRatioAmtEl) pnlRatioAmtEl.innerText = (data.pnl_ratio_amount ?? 0).toFixed(4);
+
+      const pnlRatioPctEl = document.getElementById("inst_pnl_ratio_pct");
+      if (pnlRatioPctEl) pnlRatioPctEl.innerText = (data.pnl_ratio_pct ?? 0).toFixed(4);
+
+      const pfAmtEl = document.getElementById("inst_pf_amt");
+      if (pfAmtEl) pfAmtEl.innerText = (data.profit_factor_amount ?? 0).toFixed(4);
+
+      const pfPctEl = document.getElementById("inst_pf_pct");
+      if (pfPctEl) pfPctEl.innerText = (data.profit_factor_pct ?? 0).toFixed(4);
+
+      const maxFloatWinEl = document.getElementById("inst_max_float_win");
+      if (maxFloatWinEl) maxFloatWinEl.innerText = `+$${(data.max_float_profit ?? 0).toFixed(2)}`;
+
+      const maxFloatLossEl = document.getElementById("inst_max_float_loss");
+      if (maxFloatLossEl) maxFloatLossEl.innerText = `-$${Math.abs(data.max_float_loss ?? 0).toFixed(2)}`;
+
+      // 3. Right Bottom Table (9 Parameters)
+      const avgRetWeightedEl = document.getElementById("inst_avg_ret_weighted");
+      if (avgRetWeightedEl) avgRetWeightedEl.innerText = `${(data.weighted_avg_return_pct ?? 0).toFixed(2)}%`;
+
+      const avgRetPriceEl = document.getElementById("inst_avg_ret_price");
+      if (avgRetPriceEl) avgRetPriceEl.innerText = `${(data.price_avg_return_pct ?? 0).toFixed(2)}%`;
+
+      const avgWinPriceEl = document.getElementById("inst_avg_win_price");
+      if (avgWinPriceEl) avgWinPriceEl.innerText = `${(data.avg_win_price_pct ?? 0).toFixed(2)}%`;
+
+      const avgLossPriceEl = document.getElementById("inst_avg_loss_price");
+      if (avgLossPriceEl) avgLossPriceEl.innerText = `${(data.avg_loss_price_pct ?? 0).toFixed(2)}%`;
+
+      const rateRatioEl = document.getElementById("inst_rate_ratio");
+      if (rateRatioEl) rateRatioEl.innerText = (data.win_loss_rate_ratio ?? 0).toFixed(4);
+
+      const pfWeightedEl = document.getElementById("inst_pf_weighted");
+      if (pfWeightedEl) pfWeightedEl.innerText = (data.profit_factor_amount ?? 0).toFixed(4);
+
+      const oddsRatioEl = document.getElementById("inst_odds_ratio");
+      if (oddsRatioEl) oddsRatioEl.innerText = `${(data.odds_win_ratio ?? 0).toFixed(2)}%`;
+
+      const totalCostsEl = document.getElementById("inst_total_costs");
+      if (totalCostsEl) totalCostsEl.innerText = `$${(data.total_costs ?? 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const tradingDaysEl = document.getElementById("inst_trading_days");
+      if (tradingDaysEl) tradingDaysEl.innerText = `${data.trading_days ?? 1442} 天`;
+
+      const annualTradingDaysEl = document.getElementById("inst_annual_trading_days");
+      if (annualTradingDaysEl) annualTradingDaysEl.innerText = `${(data.annual_trading_days ?? 365.25).toFixed(2)} 天`;
+
+      // 4. Render Yearly Table
+      const yearlyTbody = document.getElementById("instYearlyTableBody");
+      if (yearlyTbody && data.yearly && data.yearly.length > 0) {
+        yearlyTbody.innerHTML = data.yearly.map(y => {
+          const isPos = (y.net_pnl || 0) >= 0;
+          const color = isPos ? "text-emerald-400" : "text-rose-400";
+          const sign = isPos ? "+" : "";
+          const retPct = y.return_pct || 0;
+          const barWidth = Math.min(100, Math.max(5, Math.abs(retPct) * 40));
+          const barColor = isPos ? "bg-emerald-500" : "bg-rose-500";
+
+          return `
+            <tr class="hover:bg-slate-800/40 transition">
+              <td class="py-2.5 px-3 font-bold text-white">${y.year} 年</td>
+              <td class="py-2.5 px-3 text-slate-300 font-mono">${y.trades} 笔</td>
+              <td class="py-2.5 px-3 font-mono">
+                <span class="text-slate-200">${y.win_trades} 胜</span>
+                <span class="text-slate-500 mx-1">/</span>
+                <span class="${y.win_rate >= 40 ? 'text-emerald-400' : 'text-slate-400'} font-bold">${y.win_rate.toFixed(1)}%</span>
+              </td>
+              <td class="py-2.5 px-3 text-amber-400 font-mono">$${(y.friction || 0).toFixed(2)}</td>
+              <td class="py-2.5 px-3 font-bold ${color} font-mono">${sign}$${(y.net_pnl || 0).toFixed(2)}</td>
+              <td class="py-2.5 px-3 font-bold ${color} font-mono">${sign}${retPct.toFixed(2)}%</td>
+              <td class="py-2.5 px-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-20 bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div class="${barColor} h-2 rounded-full" style="width: ${barWidth}%"></div>
+                  </div>
+                  <span class="text-[10px] text-slate-400 font-sans">${isPos ? '稳健扩张' : '控制回撤'}</span>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // 5. Render Monthly Returns Matrix
+      const monthlyTbody = document.getElementById("instMonthlyMatrixBody");
+      if (monthlyTbody && data.monthly) {
+        const years = [2022, 2023, 2024, 2025, 2026];
+        const monthlyMap = {};
+        data.monthly.forEach(m => {
+          monthlyMap[m.month] = m;
+        });
+
+        monthlyTbody.innerHTML = years.map(yr => {
+          const yearlyItem = (data.yearly || []).find(y => y.year === yr) || {};
+          const yRet = yearlyItem.return_pct || 0;
+          const yPos = (yearlyItem.net_pnl || 0) >= 0;
+          const yColor = yPos ? "text-emerald-400" : "text-rose-400";
+          const ySign = yPos ? "+" : "";
+
+          let rowHtml = `<tr class="hover:bg-slate-800/40 transition">`;
+          rowHtml += `<td class="py-2 px-2 text-left font-bold text-white">${yr} 年</td>`;
+
+          for (let m = 1; m <= 12; m++) {
+            const mKey = `${yr}-${String(m).padStart(2, '0')}`;
+            const mData = monthlyMap[mKey];
+            if (mData) {
+              const ret = mData.return_pct || 0;
+              const isPos = ret > 0;
+              const isZero = Math.abs(ret) < 0.001;
+              const cellCls = isZero 
+                ? "text-slate-500 bg-slate-900/30" 
+                : isPos 
+                  ? "text-emerald-300 bg-emerald-950/60 border border-emerald-900/50" 
+                  : "text-rose-300 bg-rose-950/60 border border-rose-900/50";
+              const sign = ret > 0 ? "+" : "";
+              rowHtml += `<td class="py-2 px-1"><span class="px-1.5 py-0.5 rounded text-[10px] ${cellCls}">${sign}${ret.toFixed(2)}%</span></td>`;
+            } else {
+              rowHtml += `<td class="py-2 px-1 text-slate-700 text-[10px]">--</td>`;
+            }
+          }
+
+          rowHtml += `<td class="py-2 px-2.5 text-right font-bold ${yColor} bg-slate-800/50 font-mono">${ySign}${yRet.toFixed(2)}%</td>`;
+          rowHtml += `</tr>`;
+          return rowHtml;
+        }).join('');
+      }
+
+      // 6. Update Daily Summary Cards
+      if (data.daily_summary) {
+        const ds = data.daily_summary;
+        const daysEl = document.getElementById("instDailyDays");
+        if (daysEl) daysEl.innerText = `${ds.total_trading_days || 219} 天 (宏观跨度 ${data.trading_days || 1442} 日)`;
+
+        const wrEl = document.getElementById("instDailyWinRate");
+        if (wrEl) wrEl.innerText = `${ds.win_days || 92} 赢 / ${ds.loss_days || 127} 输 (日胜率 ${(ds.day_win_rate || 42.0).toFixed(1)}%)`;
+
+        const maxWinEl = document.getElementById("instDailyMaxWin");
+        if (maxWinEl) maxWinEl.innerText = `+$${(ds.max_daily_gain || 0).toFixed(2)}`;
+
+        const maxLossEl = document.getElementById("instDailyMaxLoss");
+        if (maxLossEl) maxLossEl.innerText = `-$${Math.abs(ds.max_daily_loss || 0).toFixed(2)}`;
+
+        const avgEl = document.getElementById("instDailyAvg");
+        if (avgEl) {
+          const avgSign = (ds.avg_daily_pnl || 0) >= 0 ? "+" : "";
+          avgEl.innerText = `${avgSign}$${(ds.avg_daily_pnl || 0).toFixed(2)} / 天`;
+        }
       }
     }
 

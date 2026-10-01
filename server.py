@@ -7,6 +7,7 @@ Provides full frontend-backend decoupled API endpoints for:
 """
 
 import os
+import json
 import argparse
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
@@ -413,6 +414,17 @@ def reset_paper():
     global paper_broker
     paper_broker = PaperBroker(paper_cfg, frict_cfg)
     return jsonify({"status": "ok", "message": "Paper account reset successfully"})
+
+
+@app.route("/api/report/institutional", methods=["GET"])
+def get_institutional_report():
+    """Returns the full institutional deep quant report matching Image 2 with yearly/monthly/daily breakdowns."""
+    report_path = os.path.join(os.path.dirname(__file__), "data", "deep_quant_report.json")
+    if os.path.exists(report_path):
+        with open(report_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return jsonify(data)
+    return jsonify({"error": "Report data not found"}), 404
 
 
 def start_server(host="127.0.0.1", port=8000):
