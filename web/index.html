@@ -68,6 +68,10 @@
 
     <!-- Right Controls: Minimalist -->
     <div class="flex items-center space-x-3 text-xs">
+      <button onclick="jumpToStrategyStudio()" class="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm">
+        <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+        <span>策略工作台</span>
+      </button>
       <button onclick="jumpToInstitutionalReport()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm">
         <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
         <span>回测报告</span>
@@ -504,6 +508,11 @@
             <span>回测报告</span>
             <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded-full font-mono">全量指标</span>
           </button>
+          <button onclick="switchBottomTab('strategy')" id="tabBtnStrategy" class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
+            <span>策略工作台</span>
+            <span class="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded-full font-mono" id="stratHeaderBadge">4 策略</span>
+          </button>
         </div>
 
         <!-- Filter Buttons (For Trades Tab) -->
@@ -525,6 +534,12 @@
           <button onclick="switchChartMode('equity'); window.scrollTo({top: 0, behavior: 'smooth'});" class="px-2 py-0.5 rounded bg-cyan-900/60 text-cyan-300 border border-cyan-800 hover:bg-cyan-800 text-[11px] flex items-center gap-1">
             <i data-lucide="trending-up" class="w-3 h-3"></i><span>查看资金曲线</span>
           </button>
+        </div>
+
+        <!-- Strategy Info Badge (For Strategy Tab) -->
+        <div id="strategyInfoBadge" class="hidden text-xs text-slate-400 flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono text-[11px]">支持 TBQuant / 文华 / 通达信 / Pine 转 Python</span>
+          <span>* 可直接接入虚拟盘自动化执行</span>
         </div>
       </div>
 
@@ -905,6 +920,166 @@
         </div>
 
       </div>
+
+      <!-- Tab 4: Strategy Studio (多语言策略工作台) -->
+      <div id="containerStrategyTable" class="hidden space-y-6">
+        
+        <!-- Header & Action Bar -->
+        <div class="flex flex-wrap items-center justify-between bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800">
+              <i data-lucide="code-2" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <div class="font-bold text-white text-sm flex items-center gap-2">
+                <span>多语言量化策略工作台</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">AST 编译器</span>
+              </div>
+              <div class="text-xs text-slate-400">支持 TBQuant、文华麦语言、通达信公式、TradingView Pine 脚本自动转译为 Python 策略</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- Hidden file input for uploading txt, md, py, flm, etc. -->
+            <input type="file" id="stratFileInput" accept=".txt,.md,.py,.c,.cpp,.flm,text/*" class="hidden" onchange="handleStratFileUpload(event)">
+            <button onclick="document.getElementById('stratFileInput').click()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="upload" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>上传文件</span>
+            </button>
+            <button onclick="loadTemplateForCurrentLang()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>载入示例</span>
+            </button>
+            <button onclick="parseCurrentStrategy()" class="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition">
+              <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+              <span>解析转 Python</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Strategy Studio Dual Columns -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          
+          <!-- Left Column: Source Code Editor (6 cols) -->
+          <div class="lg:col-span-6 bg-slate-900/70 rounded-xl border border-slate-800 p-4 flex flex-col space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div class="flex items-center gap-1.5 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-xs">
+                <button onclick="selectStratLanguage('tbquant')" id="stratTab_tbquant" class="px-2.5 py-1 rounded bg-cyan-600 text-white font-medium transition">TBQuant</button>
+                <button onclick="selectStratLanguage('mylanguage')" id="stratTab_mylanguage" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">文华麦语言</button>
+                <button onclick="selectStratLanguage('tdx')" id="stratTab_tdx" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">通达信</button>
+                <button onclick="selectStratLanguage('tradingview')" id="stratTab_tradingview" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">TradingView</button>
+                <button onclick="selectStratLanguage('python')" id="stratTab_python" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">Python</button>
+              </div>
+              <div class="text-[11px] text-slate-400 font-mono" id="stratDetectInfo">自动检测语言</div>
+            </div>
+
+            <!-- Strategy Name Input -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400 whitespace-nowrap">策略名称:</span>
+              <input type="text" id="stratNameInput" placeholder="输入策略名称..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium">
+            </div>
+
+            <!-- Source Code Textarea -->
+            <div class="relative flex-1 flex flex-col">
+              <textarea id="stratSourceCode" rows="18" placeholder="在此粘贴 TBQuant、文华财经麦语言、通达信公式、TradingView Pine Script 或原生 Python 策略代码，或点击上方【上传文件】..." class="w-full h-80 bg-slate-950/90 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-cyan-500 custom-scrollbar leading-relaxed resize-y"></textarea>
+            </div>
+
+            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+              <span>* 支持拖拽 TXT/MD/PY 文件至编辑框</span>
+              <button onclick="document.getElementById('stratSourceCode').value=''; document.getElementById('stratPythonCode').value='';" class="text-slate-400 hover:text-slate-200 transition">清空输入</button>
+            </div>
+          </div>
+
+          <!-- Right Column: Transpiled Python Class & Controls (6 cols) -->
+          <div class="lg:col-span-6 bg-slate-900/70 rounded-xl border border-slate-800 p-4 flex flex-col space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                <i data-lucide="file-code-2" class="w-4 h-4 text-emerald-400"></i>
+                <span>Python 策略类 (BaseStrategy 标准)</span>
+              </span>
+              <span id="stratCompileBadge" class="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-slate-800 text-slate-400 border border-slate-700">就绪</span>
+            </div>
+
+            <!-- Extracted Parameters tuning card -->
+            <div id="stratParamsCard" class="bg-slate-950/80 rounded-lg border border-slate-800 p-2.5">
+              <div class="text-[11px] text-slate-400 font-semibold mb-1.5 flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                  <i data-lucide="sliders" class="w-3 h-3 text-cyan-400"></i>
+                  <span>策略超参数调节</span>
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono">动态生效</span>
+              </div>
+              <div id="stratParamsContainer" class="flex flex-wrap items-center gap-2 text-xs">
+                <!-- Rendered dynamically -->
+                <span class="text-slate-500 text-[11px]">点击【解析转 Python】后自动提取超参数</span>
+              </div>
+            </div>
+
+            <!-- Python Code Preview -->
+            <div class="relative flex-1 flex flex-col">
+              <textarea id="stratPythonCode" rows="14" placeholder="// 解析生成的生产级 Python 策略代码将显示于此，符合因果执行标准与实盘撮合接口..." class="w-full h-64 bg-slate-950/90 border border-slate-800 rounded-lg p-3 font-mono text-xs text-emerald-300 focus:outline-none focus:border-cyan-500 custom-scrollbar leading-relaxed resize-y"></textarea>
+            </div>
+
+            <!-- Bottom Action Buttons -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+              <div class="flex items-center gap-2">
+                <button onclick="saveCurrentStrategy()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+                  <i data-lucide="save" class="w-3.5 h-3.5 text-cyan-400"></i>
+                  <span>保存策略</span>
+                </button>
+                <button onclick="deployCurrentStrategy()" class="px-3 py-1.5 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700 font-medium text-xs flex items-center gap-1.5 transition">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>接入虚拟盘</span>
+                </button>
+              </div>
+              <button onclick="backtestCurrentStrategy()" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span>一键回测并上图</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Strategy Management Registry (CRUD Cards + Paper Trading Control) -->
+        <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-purple-950 text-purple-400 border border-purple-800">
+                <i data-lucide="boxes" class="w-4 h-4"></i>
+              </span>
+              <div>
+                <div class="font-bold text-white text-xs flex items-center gap-2">
+                  <span>策略库管理与生命周期控制</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-mono" id="stratCountBadge">4 个策略</span>
+                </div>
+                <div class="text-[11px] text-slate-400">支持策略修改、暂停/恢复、一键回测、接入虚拟盘实盘撮合与永久删除</div>
+              </div>
+            </div>
+
+            <!-- Virtual Paper Status Bar -->
+            <div class="flex items-center gap-3 bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-slate-400">虚拟盘驱动策略:</span>
+                <span class="font-bold text-emerald-400 font-mono" id="activePaperStratLabel">系统默认策略</span>
+              </div>
+              <button onclick="triggerPaperTick()" id="btnTick" class="px-2.5 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-[11px] flex items-center gap-1 transition">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                <span>单步撮合</span>
+              </button>
+              <button onclick="resetPaperAccount()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[11px] transition">
+                <span>重置账户</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Strategy Cards Grid -->
+          <div id="strategyCardsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
+            <!-- Rendered dynamically by JS -->
+          </div>
+        </div>
+
+      </div>
     </div>
 
   </main>
@@ -942,6 +1117,8 @@
       fetchDbStats();
       await fetchExecutionRoutes();
       await loadInstitutionalReport();
+      await loadStrategiesList();
+      initStratDragAndDrop();
       // Auto-run initial backtest
       executeBacktest(1.0);
     });
@@ -1077,17 +1254,28 @@
       }
     }
 
+    function jumpToStrategyStudio() {
+      switchBottomTab('strategy');
+      const section = document.getElementById("bottomAnalysisSection");
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
     function switchBottomTab(tab) {
       currentBottomTab = tab;
       const tabTrades = document.getElementById("tabBtnTrades");
       const tabUniverse = document.getElementById("tabBtnUniverse");
       const tabReport = document.getElementById("tabBtnReport");
+      const tabStrategy = document.getElementById("tabBtnStrategy");
       const containerTrades = document.getElementById("containerTradeTable");
       const containerUniverse = document.getElementById("containerUniverseTable");
       const containerReport = document.getElementById("containerReportTable");
+      const containerStrategy = document.getElementById("containerStrategyTable");
       const filterControls = document.getElementById("tradeFilterControls");
       const universeBadge = document.getElementById("universeInfoBadge");
       const reportBadge = document.getElementById("reportInfoBadge");
+      const strategyBadge = document.getElementById("strategyInfoBadge");
 
       const activeCls = "px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-bold text-xs flex items-center gap-1.5 transition";
       const inactiveCls = "px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition";
@@ -1096,38 +1284,61 @@
         tabTrades.className = activeCls;
         tabUniverse.className = inactiveCls;
         if (tabReport) tabReport.className = inactiveCls;
+        if (tabStrategy) tabStrategy.className = inactiveCls;
         containerTrades.classList.remove("hidden");
         containerUniverse.classList.add("hidden");
         if (containerReport) containerReport.classList.add("hidden");
+        if (containerStrategy) containerStrategy.classList.add("hidden");
         filterControls.classList.remove("hidden");
         universeBadge.classList.add("hidden");
         if (reportBadge) reportBadge.classList.add("hidden");
+        if (strategyBadge) strategyBadge.classList.add("hidden");
       } else if (tab === "universe") {
         tabTrades.className = inactiveCls;
         tabUniverse.className = activeCls;
         if (tabReport) tabReport.className = inactiveCls;
+        if (tabStrategy) tabStrategy.className = inactiveCls;
         containerTrades.classList.add("hidden");
         containerUniverse.classList.remove("hidden");
         if (containerReport) containerReport.classList.add("hidden");
+        if (containerStrategy) containerStrategy.classList.add("hidden");
         filterControls.classList.add("hidden");
         universeBadge.classList.remove("hidden");
         if (reportBadge) reportBadge.classList.add("hidden");
+        if (strategyBadge) strategyBadge.classList.add("hidden");
         renderUniverseTable();
       } else if (tab === "report") {
         tabTrades.className = inactiveCls;
         tabUniverse.className = inactiveCls;
         if (tabReport) tabReport.className = activeCls;
+        if (tabStrategy) tabStrategy.className = inactiveCls;
         containerTrades.classList.add("hidden");
         containerUniverse.classList.add("hidden");
         if (containerReport) containerReport.classList.remove("hidden");
+        if (containerStrategy) containerStrategy.classList.add("hidden");
         filterControls.classList.add("hidden");
         universeBadge.classList.add("hidden");
         if (reportBadge) reportBadge.classList.remove("hidden");
+        if (strategyBadge) strategyBadge.classList.add("hidden");
         if (!institutionalReportData) {
           loadInstitutionalReport();
         } else {
           renderInstitutionalReport(institutionalReportData);
         }
+      } else if (tab === "strategy") {
+        tabTrades.className = inactiveCls;
+        tabUniverse.className = inactiveCls;
+        if (tabReport) tabReport.className = inactiveCls;
+        if (tabStrategy) tabStrategy.className = activeCls;
+        containerTrades.classList.add("hidden");
+        containerUniverse.classList.add("hidden");
+        if (containerReport) containerReport.classList.add("hidden");
+        if (containerStrategy) containerStrategy.classList.remove("hidden");
+        filterControls.classList.add("hidden");
+        universeBadge.classList.add("hidden");
+        if (reportBadge) reportBadge.classList.add("hidden");
+        if (strategyBadge) strategyBadge.classList.remove("hidden");
+        loadStrategiesList();
       }
       setTimeout(() => lucide.createIcons(), 50);
     }
@@ -1889,6 +2100,15 @@
           document.getElementById("tickerVol1h").innerText = `$${(data.volume_1h_usd / 1e6).toFixed(2)}M`;
           document.getElementById("tickerBuyRatio").innerText = `${(data.buy_ratio * 100).toFixed(1)}% ${data.buy_ratio >= 0.5 ? '买方占优' : '卖方偏重'}`;
           document.getElementById("tickerDex").innerText = `${data.dex_id.toUpperCase()} Pool`;
+
+          if (data.active_strategy) {
+            const activeLabel = document.getElementById("activePaperStratLabel");
+            if (activeLabel) {
+              const isPaused = data.active_strategy.status === "PAUSED";
+              activeLabel.innerText = `${data.active_strategy.name} (${isPaused ? '已暂停' : '运行中'})`;
+              activeLabel.className = isPaused ? "font-bold text-amber-400 font-mono" : "font-bold text-emerald-400 font-mono";
+            }
+          }
         }
       } catch (e) {
         console.warn("Status fetch failed:", e);
@@ -2885,18 +3105,20 @@
 
     async function triggerPaperTick() {
       const btn = document.getElementById("btnTick");
-      btn.disabled = true;
+      if (btn) btn.disabled = true;
       try {
         const res = await fetch("/api/paper/step", { method: "POST" });
         if (res.ok) {
           const data = await res.json();
-          alert(`虚拟盘单步撮合完成!\n动作: ${data.signal}\n现价: $${data.live_price.toFixed(2)}\n诊断: ${data.reason}\n执行: ${data.executed_action || '无成交'}`);
+          const stratName = data.active_strategy_name || "系统默认超趋势策略";
+          alert(`虚拟盘单步撮合完成!\n驱动策略: ${stratName}\n交易信号: ${data.signal}\n实时现价: $${data.live_price.toFixed(2)}\n诊断原因: ${data.reason}\n执行状态: ${data.executed_action || '无成交'}`);
           fetchTokenStatus(currentToken);
+          loadStrategiesList();
         }
       } catch (e) {
         alert("撮合异常: " + e);
       } finally {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -3133,6 +3355,537 @@
       if (stream) {
         stream.innerHTML = `<div class="text-slate-500">// 实时控制台已清空，就绪等待订单执行...</div>`;
       }
+    }
+
+    // =========================================================================
+    // Strategy Studio Engine (Multi-Language Transpiler, Backtest & Paper Broker)
+    // =========================================================================
+    let currentStratLang = "tbquant";
+    let currentStratParams = {};
+    let cachedStrategiesList = [];
+    let activeEditingStratId = null;
+
+    function selectStratLanguage(lang) {
+      currentStratLang = lang;
+      const langs = ['tbquant', 'mylanguage', 'tdx', 'tradingview', 'python'];
+      langs.forEach(l => {
+        const btn = document.getElementById("stratTab_" + l);
+        if (btn) {
+          if (l === lang) {
+            btn.className = "px-2.5 py-1 rounded bg-cyan-600 text-white font-medium transition";
+          } else {
+            btn.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition";
+          }
+        }
+      });
+      const infoEl = document.getElementById("stratDetectInfo");
+      if (infoEl) {
+        const names = {
+          'tbquant': 'TBQuant 开拓者',
+          'mylanguage': '文华财经 麦语言',
+          'tdx': '通达信 公式系统',
+          'tradingview': 'TradingView Pine Script',
+          'python': '原生 Python'
+        };
+        infoEl.innerText = names[lang] || lang;
+      }
+      const codeEl = document.getElementById("stratSourceCode");
+      if (codeEl && (!codeEl.value || codeEl.value.trim().length === 0)) {
+        loadTemplateForCurrentLang();
+      }
+    }
+
+    async function loadTemplateForCurrentLang() {
+      try {
+        const res = await fetch("/api/strategy/templates");
+        if (res.ok) {
+          const templates = await res.json();
+          const t = templates[currentStratLang];
+          if (t) {
+            document.getElementById("stratSourceCode").value = t.code;
+            document.getElementById("stratNameInput").value = t.name;
+            await parseCurrentStrategy();
+          }
+        }
+      } catch (e) {
+        console.error("加载模板异常:", e);
+      }
+    }
+
+    function handleStratFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        document.getElementById("stratSourceCode").value = text;
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        document.getElementById("stratNameInput").value = baseName;
+        parseCurrentStrategy();
+      };
+      reader.readAsText(file);
+    }
+
+    function initStratDragAndDrop() {
+      const textarea = document.getElementById("stratSourceCode");
+      if (!textarea) return;
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        textarea.addEventListener(eventName, preventDefaults, false);
+      });
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      textarea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          const file = files[0];
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            textarea.value = evt.target.result;
+            const baseName = file.name.replace(/\.[^/.]+$/, "");
+            document.getElementById("stratNameInput").value = baseName;
+            parseCurrentStrategy();
+          };
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    async function parseCurrentStrategy() {
+      const code = document.getElementById("stratSourceCode").value.trim();
+      const name = document.getElementById("stratNameInput").value.trim() || "自定义量化策略";
+      if (!code) {
+        alert("请先输入或上传策略源代码");
+        return;
+      }
+      const badge = document.getElementById("stratCompileBadge");
+      if (badge) {
+        badge.innerText = "解析编译中...";
+        badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-amber-950 text-amber-400 border border-amber-800";
+      }
+      try {
+        const res = await fetch("/api/strategy/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: code, language: currentStratLang, name: name })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          document.getElementById("stratPythonCode").value = data.python_code;
+          currentStratParams = data.parameters || {};
+          renderStratParams(currentStratParams);
+          if (badge) {
+            badge.innerText = "编译通过 (A级因果防未来)";
+            badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-950 text-emerald-400 border border-emerald-800";
+          }
+          if (data.detected_language && data.detected_language !== currentStratLang) {
+            selectStratLanguage(data.detected_language);
+          }
+        } else {
+          if (badge) {
+            badge.innerText = "语法错误";
+            badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-rose-950 text-rose-400 border border-rose-800";
+          }
+          alert("解析失败: " + (data.message || "代码语法无法识别"));
+        }
+      } catch (e) {
+        if (badge) {
+          badge.innerText = "异常";
+          badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-rose-950 text-rose-400 border border-rose-800";
+        }
+        alert("网络或编译异常: " + e);
+      }
+      setTimeout(() => lucide.createIcons(), 50);
+    }
+
+    function renderStratParams(params) {
+      const container = document.getElementById("stratParamsContainer");
+      if (!container) return;
+      if (!params || Object.keys(params).length === 0) {
+        container.innerHTML = '<span class="text-slate-500 text-[11px]">无显式外部超参数（采用自适应默认值）</span>';
+        return;
+      }
+      let html = "";
+      for (const [k, v] of Object.entries(params)) {
+        html += `
+          <div class="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded border border-slate-800">
+            <span class="text-slate-400 font-mono text-[11px]">${k}:</span>
+            <input type="number" step="any" value="${v}" onchange="updateStratParam('${k}', this.value)" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-cyan-400 font-mono focus:outline-none">
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function updateStratParam(key, val) {
+      currentStratParams[key] = parseFloat(val) || val;
+    }
+
+    async function backtestCurrentStrategy() {
+      const pyCode = document.getElementById("stratPythonCode").value.trim();
+      if (!pyCode) {
+        alert("请先点击【解析转 Python】生成或编写有效的 BaseStrategy 代码！");
+        return;
+      }
+      const token = currentToken;
+      const tf = currentTimeframe;
+      
+      const badge = document.getElementById("stratCompileBadge");
+      if (badge) {
+        badge.innerText = "回测撮合中...";
+        badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-cyan-950 text-cyan-400 border border-cyan-800";
+      }
+      
+      try {
+        const res = await fetch("/api/strategy/backtest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            strategy_id: activeEditingStratId,
+            python_code: pyCode,
+            parameters: currentStratParams,
+            token: token,
+            timeframe: tf,
+            bars_count: 2500,
+            stress_mult: 1.0
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          lastBacktestResult = data;
+          renderBacktestResults(data);
+          
+          if (badge) {
+            badge.innerText = `回测完成 (${data.total_trades}笔交易)`;
+            badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-950 text-emerald-400 border border-emerald-800";
+          }
+          
+          // Smooth scroll to chart to view candlestick and signals
+          const chartCard = document.getElementById("mainChartCard");
+          if (chartCard) {
+            chartCard.scrollIntoView({ behavior: 'smooth' });
+          }
+          
+          loadStrategiesList();
+        } else {
+          alert("回测失败: " + (data.message || "未知原因"));
+        }
+      } catch (e) {
+        alert("回测请求异常: " + e);
+      }
+      setTimeout(() => lucide.createIcons(), 50);
+    }
+
+    async function saveCurrentStrategy() {
+      const name = document.getElementById("stratNameInput").value.trim() || "自定义量化策略";
+      const sourceCode = document.getElementById("stratSourceCode").value.trim();
+      const pythonCode = document.getElementById("stratPythonCode").value.trim();
+      if (!sourceCode && !pythonCode) {
+        alert("请输入策略代码后再保存！");
+        return;
+      }
+      try {
+        const payload = {
+          id: activeEditingStratId,
+          name: name,
+          language: currentStratLang,
+          source_code: sourceCode,
+          python_code: pythonCode,
+          parameters: currentStratParams
+        };
+        const res = await fetch("/api/strategy/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          activeEditingStratId = data.strategy.id;
+          alert(`策略【${name}】保存成功!`);
+          loadStrategiesList();
+        } else {
+          alert("保存失败: " + (data.message || "未知原因"));
+        }
+      } catch (e) {
+        alert("保存请求异常: " + e);
+      }
+    }
+
+    async function deployCurrentStrategy(stratId) {
+      let idToDeploy = stratId || activeEditingStratId;
+      if (!idToDeploy) {
+        const name = document.getElementById("stratNameInput").value.trim() || "自定义量化策略";
+        const sourceCode = document.getElementById("stratSourceCode").value.trim();
+        const pythonCode = document.getElementById("stratPythonCode").value.trim();
+        if (!sourceCode && !pythonCode) {
+          alert("请先输入或解析策略！");
+          return;
+        }
+        const saveRes = await fetch("/api/strategy/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name,
+            language: currentStratLang,
+            source_code: sourceCode,
+            python_code: pythonCode,
+            parameters: currentStratParams
+          })
+        });
+        const saveData = await saveRes.json();
+        if (saveData.status === "success") {
+          idToDeploy = saveData.strategy.id;
+          activeEditingStratId = idToDeploy;
+        } else {
+          alert("保存失败，无法接入虚拟盘: " + saveData.message);
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch("/api/strategy/deploy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: idToDeploy })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          alert(`策略【${data.strategy.name}】已成功接入虚拟盘!\n后续单步撮合与实盘自动交易将完全由此策略驱动。`);
+          loadStrategiesList();
+          fetchTokenStatus(currentToken);
+        } else {
+          alert("接入虚拟盘失败: " + (data.message || "未知原因"));
+        }
+      } catch (e) {
+        alert("接入虚拟盘请求异常: " + e);
+      }
+    }
+
+    async function pauseStrategy(stratId) {
+      try {
+        const res = await fetch("/api/strategy/pause", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: stratId })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          loadStrategiesList();
+        } else {
+          alert("暂停策略失败: " + (data.message || "未知原因"));
+        }
+      } catch (e) {
+        alert("暂停请求异常: " + e);
+      }
+    }
+
+    async function resumeStrategy(stratId) {
+      try {
+        const res = await fetch("/api/strategy/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: stratId })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          loadStrategiesList();
+        } else {
+          alert("恢复策略失败: " + (data.message || "未知原因"));
+        }
+      } catch (e) {
+        alert("恢复请求异常: " + e);
+      }
+    }
+
+    async function deleteStrategy(stratId, name) {
+      if (!confirm(`确认永久删除策略【${name}】？此操作不可撤销。`)) return;
+      try {
+        const res = await fetch(`/api/strategy/${stratId}`, { method: "DELETE" });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          if (activeEditingStratId === stratId) {
+            activeEditingStratId = null;
+          }
+          loadStrategiesList();
+        } else {
+          alert("删除失败: " + (data.message || "未知原因"));
+        }
+      } catch (e) {
+        alert("删除请求异常: " + e);
+      }
+    }
+
+    function editStrategy(stratId) {
+      const strat = cachedStrategiesList.find(s => s.id === stratId);
+      if (!strat) return;
+      activeEditingStratId = strat.id;
+      document.getElementById("stratNameInput").value = strat.name;
+      document.getElementById("stratSourceCode").value = strat.source_code || "";
+      document.getElementById("stratPythonCode").value = strat.python_code || "";
+      currentStratParams = strat.parameters || {};
+      renderStratParams(currentStratParams);
+      selectStratLanguage(strat.language || "tbquant");
+      
+      const badge = document.getElementById("stratCompileBadge");
+      if (badge) {
+        badge.innerText = "已载入就绪";
+        badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-cyan-950 text-cyan-400 border border-cyan-800";
+      }
+      
+      const studioHeader = document.getElementById("containerStrategyTable");
+      if (studioHeader) {
+        studioHeader.scrollIntoView({ behavior: 'smooth' });
+      }
+      setTimeout(() => lucide.createIcons(), 50);
+    }
+
+    async function loadStrategiesList() {
+      try {
+        const res = await fetch("/api/strategies");
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedStrategiesList = data.strategies || [];
+        
+        const countBadge = document.getElementById("stratCountBadge");
+        if (countBadge) countBadge.innerText = `${cachedStrategiesList.length} 个策略`;
+        const headerBadge = document.getElementById("stratHeaderBadge");
+        if (headerBadge) headerBadge.innerText = `${cachedStrategiesList.length} 策略`;
+
+        const activeStrat = data.active_paper_strategy;
+        const activeLabel = document.getElementById("activePaperStratLabel");
+        if (activeLabel) {
+          if (activeStrat) {
+            const isPaused = activeStrat.status === "PAUSED";
+            activeLabel.innerText = `${activeStrat.name} (${isPaused ? '已暂停' : '运行中'})`;
+            activeLabel.className = isPaused ? "font-bold text-amber-400 font-mono" : "font-bold text-emerald-400 font-mono";
+          } else {
+            activeLabel.innerText = "系统默认策略 (活跃)";
+            activeLabel.className = "font-bold text-cyan-400 font-mono";
+          }
+        }
+
+        renderStrategyCardsGrid(cachedStrategiesList, activeStrat);
+      } catch (e) {
+        console.error("拉取策略列表异常:", e);
+      }
+    }
+
+    function renderStrategyCardsGrid(strategies, activeStrat) {
+      const grid = document.getElementById("strategyCardsGrid");
+      if (!grid) return;
+      if (!strategies || strategies.length === 0) {
+        grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 text-xs">暂无策略，点击上方【载入示例】或【上传文件】添加策略</div>';
+        return;
+      }
+
+      const langMap = {
+        'tbquant': { label: 'TBQuant', cls: 'bg-cyan-950 text-cyan-400 border-cyan-800' },
+        'mylanguage': { label: '文华麦语言', cls: 'bg-purple-950 text-purple-400 border-purple-800' },
+        'tdx': { label: '通达信', cls: 'bg-amber-950 text-amber-400 border-amber-800' },
+        'tradingview': { label: 'PineScript', cls: 'bg-blue-950 text-blue-400 border-blue-800' },
+        'python': { label: 'Python', cls: 'bg-emerald-950 text-emerald-400 border-emerald-800' }
+      };
+
+      let html = "";
+      strategies.forEach(s => {
+        const langConf = langMap[s.language] || { label: s.language, cls: 'bg-slate-800 text-slate-300 border-slate-700' };
+        const isActivePaper = s.is_active_paper;
+        const isPaused = s.status === "PAUSED";
+        
+        let statusBadge = '';
+        if (isActivePaper) {
+          if (isPaused) {
+            statusBadge = '<span class="text-[10px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-950 text-amber-400 border border-amber-800">实盘已暂停</span>';
+          } else {
+            statusBadge = '<span class="text-[10px] px-2 py-0.5 rounded font-mono font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>实盘运行中</span>';
+          }
+        } else if (isPaused) {
+          statusBadge = '<span class="text-[10px] px-2 py-0.5 rounded font-mono text-slate-400 bg-slate-900 border border-slate-800">已暂停</span>';
+        } else {
+          statusBadge = '<span class="text-[10px] px-2 py-0.5 rounded font-mono text-slate-400 bg-slate-900 border border-slate-800">待命中</span>';
+        }
+
+        const bSum = s.backtest_summary;
+        let metricsHtml = '<div class="text-[11px] text-slate-500 py-1 font-mono">尚未回测，点击【回测】运行</div>';
+        if (bSum) {
+          const pnlCls = bSum.net_profit_usd >= 0 ? "text-emerald-400" : "text-rose-400";
+          const pnlSign = bSum.net_profit_usd >= 0 ? "+" : "";
+          metricsHtml = `
+            <div class="grid grid-cols-2 gap-1.5 text-[11px] font-mono bg-slate-950/60 p-2 rounded border border-slate-800/80">
+              <div><span class="text-slate-500">胜率:</span> <span class="text-slate-200 font-bold">${bSum.win_rate.toFixed(1)}%</span></div>
+              <div><span class="text-slate-500">交易:</span> <span class="text-slate-200 font-bold">${bSum.total_trades}笔</span></div>
+              <div><span class="text-slate-500">净收益:</span> <span class="${pnlCls} font-bold">${pnlSign}$${bSum.net_profit_usd.toFixed(1)}</span></div>
+              <div><span class="text-slate-500">回撤:</span> <span class="text-rose-400 font-bold">-${bSum.max_drawdown_pct.toFixed(1)}%</span></div>
+            </div>
+          `;
+        }
+
+        const pauseResumeBtn = isPaused ? `
+          <button onclick="resumeStrategy('${s.id}')" class="px-2 py-1 rounded bg-amber-950 text-amber-300 border border-amber-800 hover:bg-amber-900 text-[11px] flex items-center gap-1 transition" title="恢复策略开平仓">
+            <i data-lucide="play-circle" class="w-3 h-3"></i><span>恢复</span>
+          </button>
+        ` : `
+          <button onclick="pauseStrategy('${s.id}')" class="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-[11px] flex items-center gap-1 transition" title="暂停策略开平仓">
+            <i data-lucide="pause-circle" class="w-3 h-3"></i><span>暂停</span>
+          </button>
+        `;
+
+        const activeBorder = isActivePaper ? "border-emerald-500/50 glow-cyan" : "border-slate-800";
+
+        html += `
+          <div class="bg-slate-900/90 rounded-xl border ${activeBorder} p-3.5 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-start justify-between gap-1 mb-1.5">
+                <span class="font-bold text-white text-xs tracking-tight line-clamp-1" title="${s.name}">${s.name}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded font-mono border ${langConf.cls} whitespace-nowrap">${langConf.label}</span>
+              </div>
+              <div class="flex items-center justify-between mb-2">
+                ${statusBadge}
+                <span class="text-[10px] text-slate-500 font-mono">${(s.updated_at || s.created_at || '').slice(5, 16)}</span>
+              </div>
+              ${metricsHtml}
+            </div>
+
+            <!-- Card Actions -->
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1 text-xs">
+              <div class="flex items-center gap-1">
+                <button onclick="runBacktestForCard('${s.id}')" class="px-2 py-1 rounded bg-cyan-900/60 text-cyan-300 border border-cyan-800 hover:bg-cyan-800 text-[11px] flex items-center gap-1 transition" title="一键回测并上图">
+                  <i data-lucide="line-chart" class="w-3 h-3"></i><span>回测</span>
+                </button>
+                <button onclick="deployCurrentStrategy('${s.id}')" class="px-2 py-1 rounded ${isActivePaper ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-800' : 'bg-purple-950 text-purple-300 border border-purple-800 hover:bg-purple-900'} text-[11px] flex items-center gap-1 transition" title="接入虚拟盘">
+                  <i data-lucide="zap" class="w-3 h-3"></i><span>${isActivePaper ? '运行中' : '接入'}</span>
+                </button>
+                ${pauseResumeBtn}
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="editStrategy('${s.id}')" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="修改策略源码">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteStrategy('${s.id}', '${s.name}')" class="p-1 rounded bg-slate-800 hover:bg-rose-900/80 text-slate-400 hover:text-rose-300 transition" title="删除策略">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+      setTimeout(() => lucide.createIcons(), 50);
+    }
+
+    async function runBacktestForCard(stratId) {
+      const strat = cachedStrategiesList.find(s => s.id === stratId);
+      if (!strat) return;
+      activeEditingStratId = strat.id;
+      document.getElementById("stratNameInput").value = strat.name;
+      document.getElementById("stratSourceCode").value = strat.source_code || "";
+      document.getElementById("stratPythonCode").value = strat.python_code || "";
+      currentStratParams = strat.parameters || {};
+      renderStratParams(currentStratParams);
+      selectStratLanguage(strat.language || "tbquant");
+      await backtestCurrentStrategy();
     }
   </script>
 </body>

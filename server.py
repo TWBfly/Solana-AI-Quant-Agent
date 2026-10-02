@@ -20,6 +20,8 @@ from paper_broker import PaperBroker
 from friction import ExecutionRoute
 from backtester import SolanaBacktestEngine
 from factors import compute_all_factors
+from strategy_transpiler import StrategyTranspiler
+from strategy_manager import strategy_manager
 
 app = Flask(__name__, static_folder="web")
 
@@ -197,7 +199,8 @@ def get_status():
         "position": pos_info,
         "win_rate": win_rate,
         "profit_factor": pf,
-        "max_drawdown_pct": paper_broker.max_drawdown_pct * 100.0
+        "max_drawdown_pct": paper_broker.max_drawdown_pct * 100.0,
+        "active_strategy": strategy_manager.get_active_paper_info()
     })
 
 
@@ -353,8 +356,22 @@ def paper_step():
     if len(live_buffer_df) > 100:
         live_buffer_df = live_buffer_df.iloc[-100:]
 
-    factored = compute_all_factors(live_buffer_df, strat_cfg)
-    curr_bar = factored.iloc[-1]
+    # Dynamic strategy binding (custom strategy or default SolanaTrendAgent)
+    custom_agent = strategy_manager.get_active_paper_strategy()
+    active_agent = custom_agent if custom_agent is not None else agent
+    active_strat_name = getattr(active_agent, "strategy_name", "默认系统超趋势策略")
+
+    if custom_agent is not None:
+        try:
+            factored = custom_agent.prepare_indicators(live_buffer_df.copy())
+            curr_bar = factored.iloc[-1]
+        except Exception as e:
+            print(f"[PaperStep] 自定义策略指标计算异常，降级默认: {e}")
+            factored = compute_all_factors(live_buffer_df, strat_cfg)
+            curr_bar = factored.iloc[-1]
+    else:
+        factored = compute_all_factors(live_buffer_df, strat_cfg)
+        curr_bar = factored.iloc[-1]
 
     pos_dict = None
     if paper_broker.position:
@@ -366,7 +383,7 @@ def paper_step():
             "take_profit": paper_broker.position.take_profit
         }
 
-    signal = agent.evaluate_bar(curr_bar, pos_dict, sol_price_usd=live_price)
+    signal = active_agent.evaluate_bar(curr_bar, pos_dict, sol_price_usd=live_price)
     executed_action = None
 
     if signal.action == "BUY" and paper_broker.position is None:
@@ -400,7 +417,8 @@ def paper_step():
         "signal": signal.action,
         "reason": signal.reason,
         "live_price": live_price,
-        "executed_action": executed_action
+        "executed_action": executed_action,
+        "active_strategy_name": active_strat_name
     })
 
 
@@ -610,6 +628,302 @@ def get_institutional_report():
             data = json.load(f)
         return jsonify(data)
     return jsonify({"error": "Report data not found"}), 404
+
+
+# =========================================================================
+# Custom Strategy Transpiler, Backtest & Management API Endpoints
+# =========================================================================
+
+@app.route("/api/strategy/parse", methods=["POST"])
+def parse_strategy_code():
+    """
+    Parses pasted trading code or uploaded file (TBQuant, 文华, 通达信, TradingView)
+    and transpiles it to production Python BaseStrategy class.
+    """
+    code_text = ""
+    file_name = ""
+    lang = "auto"
+    name = "自定义量化策略"
+
+    if "file" in request.files:
+        uploaded_file = request.files["file"]
+        file_name = uploaded_file.filename
+        raw_bytes = uploaded_file.read()
+        try:
+            code_text = raw_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                code_text = raw_bytes.decode("gb18030")
+            except UnicodeDecodeError:
+                code_text = raw_bytes.decode("latin1")
+        name = os.path.splitext(file_name)[0]
+        lang = request.form.get("language", "auto")
+    else:
+        req = request.get_json() or {}
+        code_text = req.get("code", "")
+        lang = req.get("language", "auto")
+        name = req.get("name", "自定义量化策略")
+
+    if not code_text.strip():
+        return jsonify({"status": "error", "message": "代码内容不能为空"}), 400
+
+    try:
+        detected_lang = StrategyTranspiler.detect_language(code_text) if lang == "auto" else lang
+        py_code, meta = StrategyTranspiler.transpile(code_text, language=detected_lang, strategy_name=name)
+        
+        # Test compile
+        _ = StrategyTranspiler.compile_strategy_instance(py_code, meta.get("parameters", {}))
+        
+        return jsonify({
+            "status": "success",
+            "detected_language": detected_lang,
+            "language_name": StrategyTranspiler.SUPPORTED_LANGUAGES.get(detected_lang, detected_lang),
+            "strategy_name": name,
+            "python_code": py_code,
+            "parameters": meta.get("parameters", {}),
+            "source_code": code_text
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"解析转换失败: {str(e)}"}), 400
+
+
+@app.route("/api/strategy/templates", methods=["GET"])
+def get_strategy_templates():
+    """Returns sample codes for all 4 supported trading languages."""
+    return jsonify({
+        "tbquant": {
+            "name": "TBQuant 双均线波幅止损",
+            "language": "tbquant",
+            "code": StrategyTranspiler.get_template("tbquant")
+        },
+        "mylanguage": {
+            "name": "文华财经 唐奇安通道突破",
+            "language": "mylanguage",
+            "code": StrategyTranspiler.get_template("mylanguage")
+        },
+        "tdx": {
+            "name": "通达信 放量金叉共振进攻",
+            "language": "tdx",
+            "code": StrategyTranspiler.get_template("tdx")
+        },
+        "tradingview": {
+            "name": "TradingView Pine 动量均线",
+            "language": "tradingview",
+            "code": StrategyTranspiler.get_template("tradingview")
+        }
+    })
+
+
+@app.route("/api/strategies", methods=["GET"])
+def list_strategies():
+    """Lists all registered custom strategies."""
+    items = strategy_manager.list_strategies()
+    active_info = strategy_manager.get_active_paper_info()
+    return jsonify({
+        "strategies": items,
+        "active_paper_strategy": active_info
+    })
+
+
+@app.route("/api/strategy/save", methods=["POST"])
+def save_strategy():
+    """Saves or updates custom strategy definition."""
+    req = request.get_json() or {}
+    try:
+        saved = strategy_manager.save_strategy(req)
+        return jsonify({"status": "success", "strategy": saved})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/strategy/backtest", methods=["POST"])
+def backtest_custom_strategy():
+    """
+    Runs causal backtest on a custom strategy (using python_code or strategy_id).
+    Returns complete K-line, trade markers, PnL, Win Rate, and Wilson CI.
+    """
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id")
+    python_code = req.get("python_code")
+    parameters = req.get("parameters") or {}
+    token_sym = req.get("token", "SOL").upper()
+    timeframe_str = req.get("timeframe", "15m")
+    bars_count = int(req.get("bars_count", 2000))
+    stress_mult = float(req.get("stress_mult", 1.0))
+
+    if not python_code and strat_id:
+        existing = strategy_manager.get_strategy(strat_id)
+        if existing:
+            python_code = existing.get("python_code")
+            if not parameters:
+                parameters = existing.get("parameters") or {}
+
+    if not python_code:
+        return jsonify({"status": "error", "message": "未提供 Python 策略代码"}), 400
+
+    try:
+        strat_instance = StrategyTranspiler.compile_strategy_instance(python_code, parameters)
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"策略编译失败: {str(e)}"}), 400
+
+    tf_minutes = 15
+    if timeframe_str == "5m":
+        tf_minutes = 5
+    elif timeframe_str == "1h":
+        tf_minutes = 60
+    elif timeframe_str == "4h":
+        tf_minutes = 240
+
+    token_info = HistoricalMarketFeed.SUPPORTED_TOKENS.get(token_sym, {})
+    mint_addr = token_info.get("mint", paper_cfg.target_token_mint)
+    telemetry = dex_client.get_primary_pair_telemetry(mint_addr)
+    anchor_price = telemetry["price_usd"] if telemetry else token_info.get("default_price", 135.0)
+    anchor_liq = telemetry["liquidity_usd"] if telemetry else token_info.get("default_liq", 35000000.0)
+
+    df = HistoricalMarketFeed.get_market_data(
+        symbol=token_sym,
+        timeframe_minutes=tf_minutes,
+        bars_count=bars_count,
+        start_price=anchor_price,
+        base_liquidity=anchor_liq,
+        data_dir="data",
+        seed=99
+    )
+
+    engine = SolanaBacktestEngine()
+    result = engine.run_single_pass(df, stress_mult=stress_mult, sol_price=140.0, strategy_instance=strat_instance)
+
+    # Format trades list
+    trades_json = []
+    for t in result["trades"]:
+        trades_json.append({
+            "id": t.id,
+            "side": t.side,
+            "token_symbol": token_sym,
+            "entry_time": t.entry_time,
+            "exit_time": t.exit_time,
+            "entry_price": t.entry_price,
+            "exit_price": t.exit_price,
+            "token_amount": t.token_amount,
+            "gross_pnl_usd": t.gross_pnl_usd,
+            "net_pnl_usd": t.net_pnl_usd,
+            "total_fees_usd": t.total_fees_usd,
+            "total_slippage_usd": t.total_slippage_usd,
+            "total_friction_usd": t.total_friction_usd,
+            "return_pct": t.return_pct,
+            "hold_bars": t.hold_bars,
+            "exit_reason": t.exit_reason
+        })
+
+    # Cache summary if strat_id
+    if strat_id:
+        summary = {
+            "net_profit_usd": result["net_profit_usd"],
+            "return_pct": result["return_pct"],
+            "win_rate": result["win_rate"],
+            "sharpe_ratio": result["sharpe_ratio"],
+            "max_drawdown_pct": result["max_drawdown_pct"],
+            "total_trades": result["total_trades"],
+            "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        strategy_manager.update_backtest_summary(strat_id, summary)
+
+    return jsonify({
+        "status": "success",
+        "token": token_sym,
+        "timeframe": timeframe_str,
+        "stress_mult": stress_mult,
+        "total_bars": result["total_bars"],
+        "start_time": result["start_time"],
+        "end_time": result["end_time"],
+        "initial_equity": result["initial_equity"],
+        "final_equity": result["final_equity"],
+        "net_profit_usd": result["net_profit_usd"],
+        "return_pct": result["return_pct"],
+        "bench_return_pct": result["bench_return_pct"],
+        "alpha_pct": result["alpha_pct"],
+        "sharpe_ratio": result["sharpe_ratio"],
+        "sortino_ratio": result["sortino_ratio"],
+        "calmar_ratio": result["calmar_ratio"],
+        "total_trades": result["total_trades"],
+        "win_rate": result["win_rate"],
+        "profit_factor": result["profit_factor"],
+        "win_loss_ratio": result["win_loss_ratio"],
+        "avg_win": result["avg_win"],
+        "avg_loss": result["avg_loss"],
+        "avg_hold_bars": result["avg_hold_bars"],
+        "max_drawdown_pct": result["max_drawdown_pct"],
+        "max_drawdown_usd": result["max_drawdown_usd"],
+        "total_fees_usd": result["total_fees_usd"],
+        "total_slippage_usd": result["total_slippage_usd"],
+        "total_friction_usd": result["total_friction_usd"],
+        "top3_concentration_pct": result["top3_concentration_pct"],
+        "wilson_ci_low": result["wilson_ci_low"],
+        "wilson_ci_high": result["wilson_ci_high"],
+        "wilson_ci_span": result["wilson_ci_span"],
+        "reliability": result["reliability"],
+        "ohlcv_bars": result["ohlcv_bars"],
+        "chart_markers": result["chart_markers"],
+        "equity_curve_points": result["equity_curve_points"],
+        "drawdown_curve_points": result["drawdown_curve_points"],
+        "trades": trades_json
+    })
+
+
+@app.route("/api/strategy/deploy", methods=["POST"])
+def deploy_strategy():
+    """Deploys custom strategy to virtual paper trading execution."""
+    req = request.get_json() or {}
+    strat_id = req.get("id")
+    if not strat_id:
+        return jsonify({"status": "error", "message": "缺少策略 ID"}), 400
+    try:
+        updated = strategy_manager.deploy_to_paper(strat_id)
+        return jsonify({"status": "success", "strategy": updated})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/strategy/undeploy", methods=["POST"])
+def undeploy_strategy():
+    """Detaches active custom strategy from paper broker, reverting to default."""
+    strategy_manager.undeploy_paper()
+    return jsonify({"status": "success", "message": "已恢复默认系统策略"})
+
+
+@app.route("/api/strategy/pause", methods=["POST"])
+def pause_strategy():
+    """Pauses a running strategy."""
+    req = request.get_json() or {}
+    strat_id = req.get("id")
+    if not strat_id:
+        return jsonify({"status": "error", "message": "缺少策略 ID"}), 400
+    res = strategy_manager.pause_strategy(strat_id)
+    if res:
+        return jsonify({"status": "success", "strategy": res})
+    return jsonify({"status": "error", "message": "未找到策略"}), 404
+
+
+@app.route("/api/strategy/resume", methods=["POST"])
+def resume_strategy():
+    """Resumes a paused strategy."""
+    req = request.get_json() or {}
+    strat_id = req.get("id")
+    if not strat_id:
+        return jsonify({"status": "error", "message": "缺少策略 ID"}), 400
+    res = strategy_manager.resume_strategy(strat_id)
+    if res:
+        return jsonify({"status": "success", "strategy": res})
+    return jsonify({"status": "error", "message": "未找到策略"}), 404
+
+
+@app.route("/api/strategy/<strat_id>", methods=["DELETE"])
+def delete_strategy(strat_id):
+    """Deletes a custom strategy."""
+    ok = strategy_manager.delete_strategy(strat_id)
+    if ok:
+        return jsonify({"status": "success", "message": "策略已删除"})
+    return jsonify({"status": "error", "message": "未找到策略"}), 404
 
 
 def start_server(host="127.0.0.1", port=8000):

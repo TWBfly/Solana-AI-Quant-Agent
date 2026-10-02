@@ -49,16 +49,21 @@ class SolanaBacktestEngine:
         self,
         df: pd.DataFrame,
         stress_mult: float = 1.0,
-        sol_price: float = 140.0
+        sol_price: float = 140.0,
+        strategy_instance: Any = None
     ) -> Dict[str, Any]:
         """
         Executes a single backtest pass across the historical DataFrame.
+        Supports both built-in SolanaTrendAgent and custom BaseStrategy instances.
         """
         # 1. Compute Indicators
-        data = compute_all_factors(df, self.strat_cfg)
+        if strategy_instance is not None:
+            agent = strategy_instance
+            data = agent.prepare_indicators(df.copy())
+        else:
+            data = compute_all_factors(df, self.strat_cfg)
+            agent = SolanaTrendAgent(self.strat_cfg, self.frict_cfg)
         
-        # 2. Initialize Agent & Broker
-        agent = SolanaTrendAgent(self.strat_cfg, self.frict_cfg)
         broker = PaperBroker(self.paper_cfg, self.frict_cfg, stress_mult=stress_mult)
 
         pending_signal = None
@@ -258,10 +263,10 @@ class SolanaBacktestEngine:
                 float(row['close']),
                 float(row['low']),
                 float(row['high']),
-                float(row.get('volume_usd', 0.0)),
-                float(row.get('zlema_fast', row['close'])),
-                float(row.get('zlema_slow', row['close'])),
-                float(row.get('supertrend', row['close']))
+                float(row.get('volume_usd', row.get('volume', 0.0))),
+                float(row.get('zlema_fast', row.get('tb_fast_ma', row.get('my_ma1', row.get('tdx_ma_short', row.get('pine_fast_ema', row['close'])))))),
+                float(row.get('zlema_slow', row.get('tb_slow_ma', row.get('my_ma2', row.get('tdx_ma_long', row.get('pine_slow_ema', row['close'])))))),
+                float(row.get('supertrend', row.get('my_hhv', row.get('tdx_vol_ma5', row['close']))))
             ])
 
             # M2M equity & benchmark equity

@@ -283,9 +283,38 @@ def run_self_check():
     assert res_hft.atomic_protection is True, "HFT route must provide atomic revert protection!"
     assert res_hft.jito_tip_usd > 0, "HFT route must include Jito tip!"
     assert res_hft.latency_ms < 300.0, "HFT route latency must be single-slot direct!"
-    print("  [Pass 5/5] 三维交易执行路由 (CEX 极低延迟 / DEX 智能聚合 / Jito HFT 原子回滚) 校验通过。")
+    print("  [Pass 5/6] 三维交易执行路由 (CEX 极低延迟 / DEX 智能聚合 / Jito HFT 原子回滚) 校验通过。")
 
-    print("\n✅ 所有自检断言全部通过 (All 5 checks passed successfully)!\n")
+    # Check 6: Multi-Language Strategy Transpiler & Lifecycle Manager
+    from strategy_transpiler import StrategyTranspiler
+    from strategy_manager import strategy_manager
+    langs = ["tbquant", "mylanguage", "tdx", "tradingview"]
+    for l in langs:
+        tpl = StrategyTranspiler.get_template(l)
+        assert len(tpl) > 50, f"Template for {l} must not be empty!"
+        py_code, meta = StrategyTranspiler.transpile(tpl, language=l, strategy_name=f"Test_{l}")
+        assert "BaseStrategy" in py_code, f"Transpiled code for {l} must inherit BaseStrategy!"
+        inst = StrategyTranspiler.compile_strategy_instance(py_code, meta.get("parameters", {}))
+        assert inst is not None, f"Instance for {l} must compile successfully!"
+
+    # Test backtesting a custom strategy
+    bt_res = engine.run_single_pass(sample_df, strategy_instance=inst, sol_price=120.0)
+    assert "trades" in bt_res and "net_profit_usd" in bt_res, "Custom strategy backtest must return valid trades payload!"
+
+    # Test strategy manager lifecycle: deploy, pause, resume
+    strats = strategy_manager.list_strategies()
+    assert len(strats) >= 4, "Strategy manager must register presets!"
+    test_id = strats[0]["id"]
+    deployed = strategy_manager.deploy_to_paper(test_id)
+    assert deployed["is_active_paper"] is True, "Strategy must be deployed to paper broker!"
+    paused = strategy_manager.pause_strategy(test_id)
+    assert paused["status"] == "PAUSED", "Strategy must be paused!"
+    resumed = strategy_manager.resume_strategy(test_id)
+    assert resumed["status"] == "RUNNING", "Strategy must be resumed!"
+    strategy_manager.undeploy_paper()
+    print("  [Pass 6/6] 四种量化脚本 (TBQuant/文华/通达信/Pine) 语法转译、动态编译与策略生命周期管理校验通过。")
+
+    print("\n✅ 所有自检断言全部通过 (All 6 checks passed successfully)!\n")
 
 
 def main():
