@@ -37,27 +37,29 @@ class StrategyTranspiler:
         lower = text.lower()
 
         # 1. TradingView Pine Script
-        if "//@version=" in lower or "strategy(" in lower or "ta." in lower or "plotshape(" in lower:
+        if "//@version" in lower or "strategy(" in lower or "indicator(" in lower or "ta." in lower or "plotshape(" in lower or "study(" in lower or "strategy.entry" in lower or "strategy.close" in lower:
             return "tradingview"
 
         # 2. TBQuant / TradeBlazer
-        if "params" in lower and ("begin" in lower and "end" in lower) or "numericseries" in lower or "crossover(" in lower:
+        if ("params" in lower and ("begin" in lower or "end" in lower or "vars" in lower)) or "numericseries" in lower or "crossover(" in lower or "crossunder(" in lower or "tradeblazer" in lower or "tbquant" in lower or re.search(r'\b(buy|sell)\s*\(\s*\d', lower):
             return "tbquant"
 
         # 3. 文华财经 MyLanguage
-        if "autofilter" in lower or ",bk;" in lower or ",sp;" in lower or ",sk;" in lower or ",bp;" in lower or "bkprice" in lower:
+        if "autofilter" in lower or ",bk;" in lower or ",sp;" in lower or ",sk;" in lower or ",bp;" in lower or "bkprice" in lower or "skprice" in lower or "setsigpricerange" in lower:
             return "mylanguage"
 
         # 4. 通达信 TDX
-        if "enterlong" in lower or "exitlong" in lower or "drawicon(" in lower or "cross(c," in lower or "cross(close," in lower:
+        if "enterlong" in lower or "exitlong" in lower or "entershort" in lower or "exitshort" in lower or "drawicon(" in lower or "drawtext(" in lower or "cross(c," in lower or "cross(close," in lower or (re.search(r'\{[^{}]*\}', text) and ":=" in text):
             return "tdx"
 
         # 5. Direct Python
-        if "class " in text and ("basestrategy" in lower or "evaluate_bar" in lower):
+        if ("class " in text and ("basestrategy" in lower or "evaluate_bar" in lower)) or (text.startswith("def ") or "import pandas" in lower or "import numpy" in lower):
             return "python"
 
         # Heuristics fallback
-        if "cross(" in lower and (":=" in text or ":" in text):
+        if "cross(" in lower:
+            if ":=" in text and ("c" in lower or "vol" in lower or "v>" in lower):
+                return "tdx"
             return "mylanguage"
         if "sma(" in lower or "ema(" in lower:
             return "tradingview"

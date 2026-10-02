@@ -962,30 +962,38 @@
           <!-- Left Column: Source Code Editor (6 cols) -->
           <div class="lg:col-span-6 bg-slate-900/70 rounded-xl border border-slate-800 p-4 flex flex-col space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-              <div class="flex items-center gap-1.5 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-xs">
-                <button onclick="selectStratLanguage('tbquant')" id="stratTab_tbquant" class="px-2.5 py-1 rounded bg-cyan-600 text-white font-medium transition">TBQuant</button>
-                <button onclick="selectStratLanguage('mylanguage')" id="stratTab_mylanguage" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">文华麦语言</button>
-                <button onclick="selectStratLanguage('tdx')" id="stratTab_tdx" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">通达信</button>
-                <button onclick="selectStratLanguage('tradingview')" id="stratTab_tradingview" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">TradingView</button>
-                <button onclick="selectStratLanguage('python')" id="stratTab_python" class="px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition">Python</button>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="scan-line" class="w-4 h-4 text-cyan-400"></i>
+                  <span>策略源代码</span>
+                </span>
+                <span id="stratDetectBadge" class="text-[11px] px-2.5 py-0.5 rounded font-mono font-medium bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5">
+                  <span id="stratDetectInfo">等待粘贴代码或上传文件</span>
+                </span>
               </div>
-              <div class="text-[11px] text-slate-400 font-mono" id="stratDetectInfo">自动检测语言</div>
+              <div class="flex items-center gap-2">
+                <button onclick="loadQuickExample()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition" title="载入并自动识别示例代码">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>载入示例</span>
+                </button>
+                <button onclick="clearStratInput()" class="text-slate-500 hover:text-slate-300 text-xs transition">清空</button>
+              </div>
             </div>
 
             <!-- Strategy Name Input -->
             <div class="flex items-center gap-2">
               <span class="text-xs text-slate-400 whitespace-nowrap">策略名称:</span>
-              <input type="text" id="stratNameInput" placeholder="输入策略名称..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium">
+              <input type="text" id="stratNameInput" placeholder="输入策略名称 (留空将自动生成)..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium">
             </div>
 
             <!-- Source Code Textarea -->
             <div class="relative flex-1 flex flex-col">
-              <textarea id="stratSourceCode" rows="18" placeholder="在此粘贴 TBQuant、文华财经麦语言、通达信公式、TradingView Pine Script 或原生 Python 策略代码，或点击上方【上传文件】..." class="w-full h-80 bg-slate-950/90 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-cyan-500 custom-scrollbar leading-relaxed resize-y"></textarea>
+              <textarea id="stratSourceCode" rows="18" oninput="handleSourceCodeInput()" onpaste="handleSourceCodePaste(event)" placeholder="支持直接粘贴或拖拽上传 TBQuant（开拓者）、文华财经（麦语言）、通达信公式、TradingView（Pine Script）或 Python 策略，系统将自动识别并转译..." class="w-full h-80 bg-slate-950/90 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-cyan-500 custom-scrollbar leading-relaxed resize-y"></textarea>
             </div>
 
             <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500">
-              <span>* 支持拖拽 TXT/MD/PY 文件至编辑框</span>
-              <button onclick="document.getElementById('stratSourceCode').value=''; document.getElementById('stratPythonCode').value='';" class="text-slate-400 hover:text-slate-200 transition">清空输入</button>
+              <span>* 支持直接拖拽 TXT / MD / PY 文件至编辑框</span>
+              <button onclick="clearStratInput()" class="text-slate-400 hover:text-slate-200 transition">清空输入</button>
             </div>
           </div>
 
@@ -3358,57 +3366,152 @@
     }
 
     // =========================================================================
-    // Strategy Studio Engine (Multi-Language Transpiler, Backtest & Paper Broker)
+    // Strategy Studio Engine (Automatic Language Recognition, Transpiler & Paper Broker)
     // =========================================================================
-    let currentStratLang = "tbquant";
+    let currentStratLang = "auto";
     let currentStratParams = {};
     let cachedStrategiesList = [];
     let activeEditingStratId = null;
+    let autoParseDebounceTimer = null;
+    let exampleIndex = 0;
+    const EXAMPLE_LANGS = ["tbquant", "mylanguage", "tdx", "tradingview"];
 
-    function selectStratLanguage(lang) {
-      currentStratLang = lang;
-      const langs = ['tbquant', 'mylanguage', 'tdx', 'tradingview', 'python'];
-      langs.forEach(l => {
-        const btn = document.getElementById("stratTab_" + l);
-        if (btn) {
-          if (l === lang) {
-            btn.className = "px-2.5 py-1 rounded bg-cyan-600 text-white font-medium transition";
-          } else {
-            btn.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white font-medium transition";
-          }
-        }
-      });
-      const infoEl = document.getElementById("stratDetectInfo");
-      if (infoEl) {
-        const names = {
-          'tbquant': 'TBQuant 开拓者',
-          'mylanguage': '文华财经 麦语言',
-          'tdx': '通达信 公式系统',
-          'tradingview': 'TradingView Pine Script',
-          'python': '原生 Python'
-        };
-        infoEl.innerText = names[lang] || lang;
+    const LANG_DISPLAY_MAP = {
+      'tbquant': { name: 'TBQuant (开拓者)', badgeCls: 'bg-cyan-950 text-cyan-300 border-cyan-800', dotCls: 'bg-cyan-400' },
+      'mylanguage': { name: '文华财经 (麦语言)', badgeCls: 'bg-purple-950 text-purple-300 border-purple-800', dotCls: 'bg-purple-400' },
+      'tdx': { name: '通达信 (公式系统)', badgeCls: 'bg-amber-950 text-amber-300 border-amber-800', dotCls: 'bg-amber-400' },
+      'tradingview': { name: 'TradingView (Pine Script)', badgeCls: 'bg-blue-950 text-blue-300 border-blue-800', dotCls: 'bg-blue-400' },
+      'python': { name: '原生 Python (BaseStrategy)', badgeCls: 'bg-emerald-950 text-emerald-300 border-emerald-800', dotCls: 'bg-emerald-400' }
+    };
+
+    function detectLanguageClient(code) {
+      const text = (code || "").trim();
+      const lower = text.toLowerCase();
+      if (!lower) return null;
+
+      // 1. TradingView Pine Script
+      if (lower.includes("//@version") || lower.includes("strategy(") || lower.includes("indicator(") || lower.includes("ta.") || lower.includes("plotshape(") || lower.includes("study(") || lower.includes("strategy.entry") || lower.includes("strategy.close")) {
+        return "tradingview";
       }
-      const codeEl = document.getElementById("stratSourceCode");
-      if (codeEl && (!codeEl.value || codeEl.value.trim().length === 0)) {
-        loadTemplateForCurrentLang();
+
+      // 2. TBQuant / TradeBlazer
+      if ((lower.includes("params") && (lower.includes("begin") || lower.includes("end") || lower.includes("vars"))) || lower.includes("numericseries") || lower.includes("crossover(") || lower.includes("crossunder(") || lower.includes("tradeblazer") || lower.includes("tbquant") || /\b(buy|sell)\s*\(\s*\d/i.test(lower)) {
+        return "tbquant";
       }
+
+      // 3. 文华财经 MyLanguage
+      if (lower.includes("autofilter") || lower.includes(",bk;") || lower.includes(",sp;") || lower.includes(",sk;") || lower.includes(",bp;") || lower.includes("bkprice") || lower.includes("skprice") || lower.includes("setsigpricerange")) {
+        return "mylanguage";
+      }
+
+      // 4. 通达信 TDX
+      if (lower.includes("enterlong") || lower.includes("exitlong") || lower.includes("entershort") || lower.includes("exitshort") || lower.includes("drawicon(") || lower.includes("drawtext(") || lower.includes("cross(c,") || lower.includes("cross(close,") || (/\{[^{}]*\}/.test(text) && text.includes(":="))) {
+        return "tdx";
+      }
+
+      // 5. Direct Python
+      if ((text.includes("class ") && (lower.includes("basestrategy") || lower.includes("evaluate_bar"))) || (text.startsWith("def ") || lower.includes("import pandas") || lower.includes("import numpy"))) {
+        return "python";
+      }
+
+      // Fallback heuristics
+      if (lower.includes("cross(")) {
+        if (text.includes(":=") && (lower.includes("c") || lower.includes("vol"))) return "tdx";
+        return "mylanguage";
+      }
+      if (lower.includes("sma(") || lower.includes("ema(")) {
+        return "tradingview";
+      }
+
+      return "mylanguage";
     }
 
-    async function loadTemplateForCurrentLang() {
+    function updateDetectedLanguageBadge(lang) {
+      currentStratLang = lang || "auto";
+      const badge = document.getElementById("stratDetectBadge");
+      const info = document.getElementById("stratDetectInfo");
+      if (!badge || !info) return;
+
+      if (!lang) {
+        badge.className = "text-[11px] px-2.5 py-0.5 rounded font-mono font-medium bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5";
+        info.innerHTML = '<span>等待粘贴代码或上传文件</span>';
+        return;
+      }
+
+      const conf = LANG_DISPLAY_MAP[lang] || { name: lang, badgeCls: 'bg-slate-800 text-slate-300 border-slate-700', dotCls: 'bg-slate-400' };
+      badge.className = `text-[11px] px-2.5 py-0.5 rounded font-mono font-medium border flex items-center gap-1.5 ${conf.badgeCls}`;
+      info.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${conf.dotCls} animate-pulse"></span><span>已识别: ${conf.name}</span>`;
+    }
+
+    function handleSourceCodeInput() {
+      const code = document.getElementById("stratSourceCode").value.trim();
+      if (!code) {
+        updateDetectedLanguageBadge(null);
+        return;
+      }
+      const lang = detectLanguageClient(code);
+      updateDetectedLanguageBadge(lang);
+
+      // Auto-name strategy if blank or placeholder
+      const nameInput = document.getElementById("stratNameInput");
+      if (nameInput && (!nameInput.value || nameInput.value === "自定义量化策略" || nameInput.value.includes("双均线") || nameInput.value.includes("通道") || nameInput.value.includes("动量"))) {
+        const langNames = {
+          'tbquant': 'TBQuant 经典策略',
+          'mylanguage': '文华麦语言 策略',
+          'tdx': '通达信 共振策略',
+          'tradingview': 'TradingView Pine 策略',
+          'python': 'Python 自定义策略'
+        };
+        nameInput.value = langNames[lang] || "自定义量化策略";
+      }
+
+      // Debounce automatic translation into Python
+      clearTimeout(autoParseDebounceTimer);
+      autoParseDebounceTimer = setTimeout(() => {
+        if (code.length >= 20) {
+          parseCurrentStrategy(true);
+        }
+      }, 400);
+    }
+
+    function handleSourceCodePaste(event) {
+      setTimeout(() => {
+        handleSourceCodeInput();
+      }, 50);
+    }
+
+    function clearStratInput() {
+      document.getElementById("stratSourceCode").value = "";
+      document.getElementById("stratPythonCode").value = "";
+      document.getElementById("stratNameInput").value = "";
+      updateDetectedLanguageBadge(null);
+      const container = document.getElementById("stratParamsContainer");
+      if (container) container.innerHTML = '<span class="text-slate-500 text-[11px]">粘贴或上传代码后自动提取超参数</span>';
+      const badge = document.getElementById("stratCompileBadge");
+      if (badge) {
+        badge.innerText = "等待输入";
+        badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-slate-800 text-slate-400 border border-slate-700";
+      }
+      activeEditingStratId = null;
+    }
+
+    async function loadQuickExample() {
       try {
+        const lang = EXAMPLE_LANGS[exampleIndex % EXAMPLE_LANGS.length];
+        exampleIndex++;
         const res = await fetch("/api/strategy/templates");
         if (res.ok) {
           const templates = await res.json();
-          const t = templates[currentStratLang];
+          const t = templates[lang];
           if (t) {
             document.getElementById("stratSourceCode").value = t.code;
             document.getElementById("stratNameInput").value = t.name;
-            await parseCurrentStrategy();
+            handleSourceCodeInput();
+            await parseCurrentStrategy(false);
           }
         }
       } catch (e) {
-        console.error("加载模板异常:", e);
+        console.error("加载示例异常:", e);
       }
     }
 
@@ -3421,7 +3524,8 @@
         document.getElementById("stratSourceCode").value = text;
         const baseName = file.name.replace(/\.[^/.]+$/, "");
         document.getElementById("stratNameInput").value = baseName;
-        parseCurrentStrategy();
+        handleSourceCodeInput();
+        parseCurrentStrategy(false);
       };
       reader.readAsText(file);
     }
@@ -3446,30 +3550,31 @@
             textarea.value = evt.target.result;
             const baseName = file.name.replace(/\.[^/.]+$/, "");
             document.getElementById("stratNameInput").value = baseName;
-            parseCurrentStrategy();
+            handleSourceCodeInput();
+            parseCurrentStrategy(false);
           };
           reader.readAsText(file);
         }
       });
     }
 
-    async function parseCurrentStrategy() {
+    async function parseCurrentStrategy(isAuto = false) {
       const code = document.getElementById("stratSourceCode").value.trim();
       const name = document.getElementById("stratNameInput").value.trim() || "自定义量化策略";
       if (!code) {
-        alert("请先输入或上传策略源代码");
+        if (!isAuto) alert("请先输入或上传策略源代码");
         return;
       }
       const badge = document.getElementById("stratCompileBadge");
       if (badge) {
-        badge.innerText = "解析编译中...";
+        badge.innerText = "自动解析中...";
         badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-amber-950 text-amber-400 border border-amber-800";
       }
       try {
         const res = await fetch("/api/strategy/parse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: code, language: currentStratLang, name: name })
+          body: JSON.stringify({ code: code, language: "auto", name: name })
         });
         const data = await res.json();
         if (res.ok && data.status === "success") {
@@ -3477,25 +3582,27 @@
           currentStratParams = data.parameters || {};
           renderStratParams(currentStratParams);
           if (badge) {
-            badge.innerText = "编译通过 (A级因果防未来)";
+            badge.innerText = "自动编译通过 (A级因果防未来)";
             badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-950 text-emerald-400 border border-emerald-800";
           }
-          if (data.detected_language && data.detected_language !== currentStratLang) {
-            selectStratLanguage(data.detected_language);
+          if (data.detected_language) {
+            updateDetectedLanguageBadge(data.detected_language);
           }
         } else {
           if (badge) {
             badge.innerText = "语法错误";
             badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-rose-950 text-rose-400 border border-rose-800";
           }
-          alert("解析失败: " + (data.message || "代码语法无法识别"));
+          if (!isAuto) {
+            alert("解析失败: " + (data.message || "代码语法无法识别"));
+          }
         }
       } catch (e) {
         if (badge) {
           badge.innerText = "异常";
           badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-rose-950 text-rose-400 border border-rose-800";
         }
-        alert("网络或编译异常: " + e);
+        if (!isAuto) alert("网络或编译异常: " + e);
       }
       setTimeout(() => lucide.createIcons(), 50);
     }
@@ -3726,7 +3833,7 @@
       document.getElementById("stratPythonCode").value = strat.python_code || "";
       currentStratParams = strat.parameters || {};
       renderStratParams(currentStratParams);
-      selectStratLanguage(strat.language || "tbquant");
+      updateDetectedLanguageBadge(strat.language || "tbquant");
       
       const badge = document.getElementById("stratCompileBadge");
       if (badge) {
@@ -3884,7 +3991,7 @@
       document.getElementById("stratPythonCode").value = strat.python_code || "";
       currentStratParams = strat.parameters || {};
       renderStratParams(currentStratParams);
-      selectStratLanguage(strat.language || "tbquant");
+      updateDetectedLanguageBadge(strat.language || "tbquant");
       await backtestCurrentStrategy();
     }
   </script>
