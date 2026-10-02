@@ -22,6 +22,7 @@ from backtester import SolanaBacktestEngine
 from factors import compute_all_factors
 from strategy_transpiler import StrategyTranspiler
 from strategy_manager import strategy_manager
+from ai_service import ai_service
 
 app = Flask(__name__, static_folder="web")
 
@@ -951,6 +952,88 @@ def delete_strategy(strat_id):
     if ok:
         return jsonify({"status": "success", "message": "策略已删除"})
     return jsonify({"status": "error", "message": "未找到策略"}), 404
+
+
+# =========================================================================
+# AI Configuration, Provider Testing & LLM Assistance Endpoints
+# =========================================================================
+
+@app.route("/api/ai/config", methods=["GET"])
+def get_ai_config():
+    """Returns AI providers and active provider configuration."""
+    return jsonify(ai_service.get_config())
+
+
+@app.route("/api/ai/config", methods=["POST"])
+def save_ai_config():
+    """Updates AI provider configuration and active provider."""
+    req = request.get_json() or {}
+    updated = ai_service.save_config(req)
+    return jsonify({"status": "success", "config": updated})
+
+
+@app.route("/api/ai/reset", methods=["POST"])
+def reset_ai_config():
+    """Resets AI configuration to default from .env (EvoMap active)."""
+    cfg = ai_service.reset_to_default()
+    return jsonify({"status": "success", "config": cfg, "message": "已恢复默认 .env EvoMap 配置"})
+
+
+@app.route("/api/ai/test", methods=["POST"])
+def test_ai_connection():
+    """Tests live connectivity to the requested or active AI provider."""
+    req = request.get_json() or {}
+    provider_id = req.get("provider", "evomap")
+    api_key = req.get("api_key")
+    base_url = req.get("base_url")
+    model = req.get("model")
+    res = ai_service.test_connection(provider_id, api_key=api_key, base_url=base_url, model=model)
+    return jsonify(res)
+
+
+@app.route("/api/ai/optimize_code", methods=["POST"])
+def ai_optimize_code():
+    """Uses active AI provider to analyze and optimize trading code."""
+    req = request.get_json() or {}
+    source_code = req.get("code", "")
+    language = req.get("language", "auto")
+    user_prompt = req.get("prompt", "请对以下策略代码进行深度逻辑审计、因果健全性检验，并提供优化改进的 Python BaseStrategy 实现。")
+
+    if not source_code.strip():
+        return jsonify({"status": "error", "message": "代码内容不能为空"}), 400
+
+    messages = [
+        {"role": "system", "content": "你是一位顶级高阶量化策略专家与 Python 系统架构师。擅长 TBQuant、文华麦语言、通达信、TradingView Pine Script 的因果反编译与无未来函数优化。输出只用中文。"},
+        {"role": "user", "content": f"【策略脚本语言】: {language}\n【用户优化要求】: {user_prompt}\n\n【原始策略代码】:\n```\n{source_code}\n```\n\n请输出：\n1. 核心交易因果逻辑剖析与潜在滑点/未来函数漏洞\n2. 优化后的完整 Python BaseStrategy 代码\n3. 核心参数建议"}
+    ]
+
+    try:
+        reply = ai_service.call_llm(messages, temperature=0.3, max_tokens=3000)
+        return jsonify({"status": "success", "reply": reply})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/ai/diagnose", methods=["POST"])
+def ai_diagnose_backtest():
+    """Generates senior quant institutional diagnosis for backtest results."""
+    req = request.get_json() or {}
+    strat_name = req.get("strategy_name", "自定义策略")
+    metrics = req.get("metrics", {})
+
+    prompt = f"请作为对冲基金投资委员会主席，针对当前量化策略【{strat_name}】的回测指标给出3条犀利、专业、言简意赅的机构级诊断与实盘准入意见：\n"
+    prompt += json.dumps(metrics, ensure_ascii=False, indent=2)
+
+    messages = [
+        {"role": "system", "content": "你是一位严格的顶级对冲基金风控与投委会主席，语言犀利、一针见血、言简意赅，只用中文。"},
+        {"role": "user", "content": prompt}
+    ]
+
+    try:
+        reply = ai_service.call_llm(messages, temperature=0.3, max_tokens=800)
+        return jsonify({"status": "success", "diagnosis": reply})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
 
 
 def start_server(host="127.0.0.1", port=8000):

@@ -67,12 +67,16 @@
     </div>
 
     <!-- Right Controls: Minimalist -->
-    <div class="flex items-center space-x-3 text-xs">
-      <button onclick="jumpToStrategyStudio()" class="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm">
+    <div class="flex items-center space-x-2.5 text-xs">
+      <button onclick="openSettingsModal()" id="btnOpenSettings" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs flex items-center gap-1.5 border border-slate-700 transition shadow-sm" title="系统设置 (AI 配置)">
+        <i data-lucide="settings" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span>设置</span>
+      </button>
+      <button onclick="jumpToStrategyStudio()" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm">
         <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
         <span>策略工作台</span>
       </button>
-      <button onclick="jumpToInstitutionalReport()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm">
+      <button onclick="jumpToInstitutionalReport()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm">
         <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
         <span>回测报告</span>
       </button>
@@ -468,10 +472,132 @@
           </div>
         </div>
 
+        <!-- AI Quant Critique Box -->
+        <div class="bg-purple-950/40 rounded-xl p-3 border border-purple-800/60 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-purple-300 text-[11px] font-semibold flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>AI 投委会机构级诊断</span>
+            </span>
+            <button onclick="requestAIDiagnosis()" id="btnRequestAIDiagnosis" class="px-2 py-0.5 rounded text-[10px] bg-purple-900/80 hover:bg-purple-700 text-purple-200 border border-purple-600 transition flex items-center gap-1">
+              <i data-lucide="cpu" class="w-3 h-3"></i>
+              <span>AI 深度剖析</span>
+            </button>
+          </div>
+          <div id="aiDiagnosisContent" class="text-[11px] text-slate-300 leading-relaxed font-sans bg-slate-950/70 p-2.5 rounded-lg border border-slate-800">
+            点击上方按钮，调取当前配置的 AI 模型（默认 EvoMap / DeepSeek）对当前策略执行投委会级严苛审查。
+          </div>
+        </div>
+
         <div class="pt-2 border-t border-slate-800 flex justify-end">
           <button onclick="closeDiagnosisModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs transition">
             <span>关闭</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal (AI API Keys & Model Configuration) -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 transition-all duration-300" onclick="if(event.target === this) closeSettingsModal()">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2 rounded-xl bg-cyan-950/80 text-cyan-400 border border-cyan-800/80">
+              <i data-lucide="settings" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>系统设置</span>
+                <span class="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-cyan-950 text-cyan-400 border border-cyan-800">AI 引擎配置</span>
+              </h3>
+              <p class="text-xs text-slate-400">支持主流 AI 大模型，默认优先加载 .env 中配置的 EvoMap</p>
+            </div>
+          </div>
+          <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto space-y-5 custom-scrollbar text-xs">
+          
+          <!-- Provider Selector Tabs -->
+          <div>
+            <label class="block text-slate-300 font-semibold mb-2">选择活跃 AI 服务商:</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" id="settingsProviderTabs">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Provider Specific Settings Card -->
+          <div class="bg-slate-950/60 rounded-xl border border-slate-800 p-4 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+              <div class="flex items-center gap-2">
+                <span id="settingCurrentProviderName" class="font-bold text-white text-sm">EvoMap</span>
+                <span id="settingEnvKeyBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-950 text-emerald-400 border border-emerald-800">已载入 .env 默认密钥</span>
+              </div>
+              <span id="settingCurrentProviderDesc" class="text-[11px] text-slate-400">默认高吞吐低延迟量化模型</span>
+            </div>
+
+            <!-- API Key Input -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-slate-300 font-medium">API Key (密钥):</label>
+                <button onclick="toggleApiKeyVisibility()" class="text-[11px] text-cyan-400 hover:underline flex items-center gap-1">
+                  <i data-lucide="eye" class="w-3.5 h-3.5" id="iconToggleKey"></i>
+                  <span id="textToggleKey">显示明文</span>
+                </button>
+              </div>
+              <div class="relative">
+                <input type="password" id="settingApiKey" placeholder="输入 API Key，留空将沿用默认配置..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1" id="settingKeyHelpText">默认使用 env 文件中配置的 evomap 密钥，亦可自定义填写覆写。</p>
+            </div>
+
+            <!-- Base URL Input -->
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">接口地址 (Base URL):</label>
+              <input type="text" id="settingBaseUrl" placeholder="https://api.evomap.ai/v1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <!-- Model Name Input -->
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">模型标识 (Model ID):</label>
+              <input type="text" id="settingModel" placeholder="evomap-deepseek-v4-flash" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
+              <div class="flex items-center gap-1.5 mt-2 flex-wrap" id="settingQuickModels">
+                <!-- Quick Model Pills -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Connection Test Result Banner -->
+          <div id="settingTestResult" class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400" id="iconTestResult"></i>
+              <span id="settingTestStatusText">点击下方【测试连接】校验当前 AI 接口响应延时与连通性</span>
+            </span>
+            <span id="settingTestLatency" class="font-mono font-bold text-slate-400">--</span>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-3.5 border-t border-slate-800 flex items-center justify-between bg-slate-950/60">
+          <button onclick="resetAISettingsToDefault()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition" title="重置为 .env 中的初始 EvoMap 配置">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>恢复默认</span>
+          </button>
+          <div class="flex items-center gap-2.5">
+            <button onclick="testAISettings()" id="btnTestAI" class="px-3.5 py-1.5 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700 text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-300"></i>
+              <span>测试连接</span>
+            </button>
+            <button onclick="saveAISettings()" id="btnSaveAI" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span>保存配置</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1001,6 +1127,14 @@
             <button onclick="parseCurrentStrategy()" class="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition">
               <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
               <span>解析转 Python</span>
+            </button>
+            <button onclick="aiOptimizeCurrentStrategy()" id="btnAIOptimize" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition" title="使用当前 AI 引擎智能审计与代码转译">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-200"></i>
+              <span>AI 优化</span>
+            </button>
+            <button onclick="openSettingsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1 border border-slate-700 transition" title="配置 AI API Key">
+              <i data-lucide="settings" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>AI设置</span>
             </button>
           </div>
         </div>
@@ -4165,9 +4299,411 @@
       }
     }
 
+    // === Settings Modal & Unified AI Service Configuration ===
+    let cachedAIConfig = null;
+    let currentSettingsProviderId = "evomap";
+    let isApiKeyVisible = false;
+
+    const PROVIDER_MODEL_PRESETS = {
+      evomap: ["evomap-deepseek-v4-flash", "deepseek-chat", "gpt-4o"],
+      deepseek: ["deepseek-chat", "deepseek-reasoner"],
+      openai: ["gpt-4o-mini", "gpt-4o", "o1-mini"],
+      claude: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
+      qwen: ["qwen-plus", "qwen-max", "qwen-turbo"],
+      custom: ["llama3", "qwen2.5:7b", "deepseek-r1:8b"]
+    };
+
+    async function openSettingsModal() {
+      const modal = document.getElementById("settingsModal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+      lucide.createIcons();
+      await loadAISettings();
+    }
+
+    function closeSettingsModal() {
+      const modal = document.getElementById("settingsModal");
+      if (modal) {
+        modal.classList.add("hidden");
+      }
+    }
+
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeDiagnosisModal();
+      if (e.key === "Escape") {
+        closeDiagnosisModal();
+        closeSettingsModal();
+      }
     });
+
+    async function loadAISettings() {
+      try {
+        const res = await fetch("/api/ai/config");
+        if (!res.ok) return;
+        cachedAIConfig = await res.json();
+        currentSettingsProviderId = cachedAIConfig.active_provider || "evomap";
+        renderAISettingsModal();
+      } catch (e) {
+        console.warn("loadAISettings error:", e);
+      }
+    }
+
+    function renderAISettingsModal() {
+      if (!cachedAIConfig || !cachedAIConfig.providers) return;
+      const tabsContainer = document.getElementById("settingsProviderTabs");
+      if (!tabsContainer) return;
+
+      const pList = Object.values(cachedAIConfig.providers);
+      tabsContainer.innerHTML = pList.map(p => {
+        const isSelected = p.id === currentSettingsProviderId;
+        const isActive = p.id === cachedAIConfig.active_provider;
+        const activeCls = isSelected 
+          ? "bg-cyan-600 text-white font-bold border-cyan-400 shadow-sm ring-1 ring-cyan-400/40" 
+          : "bg-slate-900/90 text-slate-400 hover:text-white border-slate-800 hover:border-slate-700";
+        
+        const badgeDot = isActive
+          ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>`
+          : (p.has_env_key ? `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>` : ``);
+
+        return `
+          <button type="button" onclick="selectSettingsProvider('${p.id}')" class="p-2 rounded-xl border text-[11px] font-mono flex flex-col items-center justify-center gap-1 transition ${activeCls}">
+            <div class="flex items-center gap-1">
+              ${badgeDot}
+              <span>${p.name.split(' ')[0]}</span>
+            </div>
+            <span class="text-[9px] opacity-75 font-sans">${isActive ? '活跃' : (p.has_env_key ? 'env就绪' : '未配置')}</span>
+          </button>
+        `;
+      }).join('');
+
+      populateProviderForm(currentSettingsProviderId);
+      lucide.createIcons();
+    }
+
+    function populateProviderForm(pid) {
+      if (!cachedAIConfig || !cachedAIConfig.providers) return;
+      const p = cachedAIConfig.providers[pid];
+      if (!p) return;
+
+      const nameEl = document.getElementById("settingCurrentProviderName");
+      const descEl = document.getElementById("settingCurrentProviderDesc");
+      const envBadge = document.getElementById("settingEnvKeyBadge");
+      const keyInp = document.getElementById("settingApiKey");
+      const urlInp = document.getElementById("settingBaseUrl");
+      const modInp = document.getElementById("settingModel");
+      const helpText = document.getElementById("settingKeyHelpText");
+      const quickContainer = document.getElementById("settingQuickModels");
+
+      if (nameEl) nameEl.innerText = p.name;
+      if (descEl) descEl.innerText = p.description || "";
+
+      if (envBadge) {
+        if (p.has_env_key) {
+          envBadge.className = "text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-950 text-emerald-400 border border-emerald-800";
+          envBadge.innerText = "已载入 .env 默认密钥";
+        } else {
+          envBadge.className = "text-[10px] px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800";
+          envBadge.innerText = "自定义密钥";
+        }
+      }
+
+      if (keyInp) keyInp.value = p.api_key || "";
+      if (urlInp) urlInp.value = p.base_url || "";
+      if (modInp) modInp.value = p.model || "";
+
+      if (helpText) {
+        if (pid === "evomap") {
+          helpText.innerText = "默认使用 env 文件中配置的 evomap 密钥，亦可自定义填写覆写。";
+        } else if (p.has_env_key) {
+          helpText.innerText = "已自动匹配 .env 中的环境密钥，可直接使用。";
+        } else {
+          helpText.innerText = "请填入您的 API 密钥以调用此服务商。";
+        }
+      }
+
+      // Quick Models
+      if (quickContainer) {
+        const presets = PROVIDER_MODEL_PRESETS[pid] || [p.model];
+        quickContainer.innerHTML = presets.map(m => `
+          <button type="button" onclick="document.getElementById('settingModel').value = '${m}'" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 font-mono transition">
+            ${m}
+          </button>
+        `).join('');
+      }
+
+      // Reset test result banner
+      const testStatus = document.getElementById("settingTestStatusText");
+      const testLat = document.getElementById("settingTestLatency");
+      const testBanner = document.getElementById("settingTestResult");
+      if (testStatus) testStatus.innerText = "点击下方【测试连接】校验当前 AI 接口响应延时与连通性";
+      if (testLat) testLat.innerText = "--";
+      if (testBanner) testBanner.className = "p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between";
+    }
+
+    function selectSettingsProvider(pid) {
+      // Save current input values in memory before switching
+      if (cachedAIConfig && cachedAIConfig.providers && cachedAIConfig.providers[currentSettingsProviderId]) {
+        const curP = cachedAIConfig.providers[currentSettingsProviderId];
+        const keyInp = document.getElementById("settingApiKey");
+        const urlInp = document.getElementById("settingBaseUrl");
+        const modInp = document.getElementById("settingModel");
+        if (keyInp) curP.api_key = keyInp.value.trim();
+        if (urlInp) curP.base_url = urlInp.value.trim();
+        if (modInp) curP.model = modInp.value.trim();
+      }
+
+      currentSettingsProviderId = pid;
+      renderAISettingsModal();
+    }
+
+    function toggleApiKeyVisibility() {
+      const inp = document.getElementById("settingApiKey");
+      const icon = document.getElementById("iconToggleKey");
+      const txt = document.getElementById("textToggleKey");
+      isApiKeyVisible = !isApiKeyVisible;
+
+      if (inp) {
+        inp.type = isApiKeyVisible ? "text" : "password";
+      }
+      if (txt) {
+        txt.innerText = isApiKeyVisible ? "隐藏密钥" : "显示明文";
+      }
+      if (icon) {
+        icon.setAttribute("data-lucide", isApiKeyVisible ? "eye-off" : "eye");
+        lucide.createIcons();
+      }
+    }
+
+    async function testAISettings() {
+      const btn = document.getElementById("btnTestAI");
+      const origText = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.innerHTML = `<span class="animate-spin mr-1">⌛</span> 测试中...`;
+        btn.disabled = true;
+      }
+
+      const key = document.getElementById("settingApiKey").value.trim();
+      const url = document.getElementById("settingBaseUrl").value.trim();
+      const mod = document.getElementById("settingModel").value.trim();
+
+      const testStatus = document.getElementById("settingTestStatusText");
+      const testLat = document.getElementById("settingTestLatency");
+      const testBanner = document.getElementById("settingTestResult");
+
+      try {
+        const res = await fetch("/api/ai/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: currentSettingsProviderId,
+            api_key: key,
+            base_url: url,
+            model: mod
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          if (testBanner) testBanner.className = "p-3 rounded-xl bg-emerald-950/70 border border-emerald-800 text-[11px] text-emerald-300 flex items-center justify-between";
+          if (testStatus) testStatus.innerText = `✓ 连接成功！回应: "${data.reply}"`;
+          if (testLat) testLat.innerText = `${data.latency_ms} ms`;
+        } else {
+          if (testBanner) testBanner.className = "p-3 rounded-xl bg-rose-950/70 border border-rose-800 text-[11px] text-rose-300 flex items-center justify-between";
+          if (testStatus) testStatus.innerText = `✕ 连接失败: ${data.error || '未知错误'}`;
+          if (testLat) testLat.innerText = `${data.latency_ms || 0} ms`;
+        }
+      } catch (e) {
+        if (testBanner) testBanner.className = "p-3 rounded-xl bg-rose-950/70 border border-rose-800 text-[11px] text-rose-300 flex items-center justify-between";
+        if (testStatus) testStatus.innerText = `✕ 网络请求失败: ${e}`;
+      } finally {
+        if (btn) {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+        lucide.createIcons();
+      }
+    }
+
+    async function saveAISettings() {
+      const btn = document.getElementById("btnSaveAI");
+      const origText = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.innerHTML = `<span class="animate-spin mr-1">⌛</span> 保存中...`;
+        btn.disabled = true;
+      }
+
+      // Sync current form inputs
+      if (cachedAIConfig && cachedAIConfig.providers && cachedAIConfig.providers[currentSettingsProviderId]) {
+        const curP = cachedAIConfig.providers[currentSettingsProviderId];
+        curP.api_key = document.getElementById("settingApiKey").value.trim();
+        curP.base_url = document.getElementById("settingBaseUrl").value.trim();
+        curP.model = document.getElementById("settingModel").value.trim();
+      }
+
+      // Set active provider
+      cachedAIConfig.active_provider = currentSettingsProviderId;
+
+      try {
+        const res = await fetch("/api/ai/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cachedAIConfig)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          cachedAIConfig = data.config;
+          renderAISettingsModal();
+          alert(`AI 配置保存成功！\n当前活跃服务商: ${cachedAIConfig.providers[currentSettingsProviderId].name}\n模型: ${cachedAIConfig.providers[currentSettingsProviderId].model}`);
+        } else {
+          alert("保存 AI 配置失败，请检查服务日志。");
+        }
+      } catch (e) {
+        alert("网络连接异常: " + e);
+      } finally {
+        if (btn) {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+      }
+    }
+
+    async function resetAISettingsToDefault() {
+      if (!confirm("确认重置为 .env 中默认的 EvoMap 配置？")) return;
+      try {
+        const res = await fetch("/api/ai/reset", { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          cachedAIConfig = data.config;
+          currentSettingsProviderId = cachedAIConfig.active_provider || "evomap";
+          renderAISettingsModal();
+          alert("已恢复默认 .env EvoMap 配置！");
+        }
+      } catch (e) {
+        alert("重置异常: " + e);
+      }
+    }
+
+    // AI Optimize Strategy
+    async function aiOptimizeCurrentStrategy() {
+      const srcCode = document.getElementById("stratSourceCode").value.trim();
+      if (!srcCode) {
+        alert("请先在源代码区域粘贴或上传需要 AI 优化的量化策略脚本！");
+        return;
+      }
+
+      const btn = document.getElementById("btnAIOptimize");
+      const origHtml = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.innerHTML = `<span class="animate-spin mr-1">⌛</span> AI 深度分析重构中...`;
+        btn.disabled = true;
+      }
+
+      const badge = document.getElementById("stratCompileBadge");
+      if (badge) {
+        badge.innerText = "AI 正在重构策略代码...";
+        badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-purple-950 text-purple-400 border border-purple-800";
+      }
+
+      try {
+        const res = await fetch("/api/ai/optimize_code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: srcCode,
+            language: detectedLanguageKey || "auto"
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          const reply = data.reply || "";
+          
+          let pyCode = "";
+          const match = reply.match(/```python([\s\S]*?)```/);
+          if (match) {
+            pyCode = match[1].trim();
+          }
+
+          if (pyCode) {
+            document.getElementById("stratPythonCode").value = pyCode;
+            compileCurrentStrategy();
+            alert("AI 策略优化与转译完成！已自动将生成的无未来函数 BaseStrategy 代码填入 Python 执行区。");
+          } else {
+            document.getElementById("stratPythonCode").value = `\"\"\"\nAI 策略专家诊断建议:\n${reply}\n\"\"\"\n` + document.getElementById("stratPythonCode").value;
+            alert("AI 深度诊断已就绪，诊断结果已插入 Python 代码顶部注释区。");
+          }
+        } else {
+          alert("AI 优化失败: " + (data.message || "请在【设置】中检查 API Key 与额度"));
+        }
+      } catch (e) {
+        alert("AI 调用异常: " + e);
+      } finally {
+        if (btn) {
+          btn.innerHTML = origHtml;
+          btn.disabled = false;
+        }
+        lucide.createIcons();
+      }
+    }
+
+    // AI Institutional Diagnosis
+    async function requestAIDiagnosis() {
+      const btn = document.getElementById("btnRequestAIDiagnosis");
+      const contentEl = document.getElementById("aiDiagnosisContent");
+      const origHtml = btn ? btn.innerHTML : "";
+
+      if (btn) {
+        btn.innerHTML = `<span class="animate-spin mr-1">⌛</span> AI 投委会剖析中...`;
+        btn.disabled = true;
+      }
+      if (contentEl) {
+        contentEl.innerHTML = `<span class="text-purple-300 animate-pulse">正在调用机构级量化风控 AI 引擎进行多维度审计...</span>`;
+      }
+
+      const stratName = activeBacktestedStrategyName || "当前策略";
+      const metrics = lastBacktestResult ? {
+        net_profit_usd: lastBacktestResult.net_profit_usd,
+        return_pct: lastBacktestResult.return_pct,
+        win_rate: lastBacktestResult.win_rate,
+        profit_factor: lastBacktestResult.profit_factor,
+        sharpe_ratio: lastBacktestResult.sharpe_ratio,
+        max_drawdown_pct: lastBacktestResult.max_drawdown_pct,
+        total_trades: lastBacktestResult.total_trades,
+        total_friction_usd: lastBacktestResult.total_friction_usd,
+        wilson_ci: [lastBacktestResult.wilson_ci_low, lastBacktestResult.wilson_ci_high],
+        stress_mult: lastBacktestResult.stress_mult
+      } : {};
+
+      try {
+        const res = await fetch("/api/ai/diagnose", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            strategy_name: stratName,
+            metrics: metrics
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          if (contentEl) {
+            contentEl.innerHTML = `<div class="text-slate-200 whitespace-pre-wrap font-sans text-xs leading-relaxed">${data.diagnosis}</div>`;
+          }
+        } else {
+          if (contentEl) {
+            contentEl.innerHTML = `<span class="text-rose-400">AI 诊断生成失败: ${data.message || '请在【设置】中配置有效 API Key'}</span>`;
+          }
+        }
+      } catch (e) {
+        if (contentEl) contentEl.innerHTML = `<span class="text-rose-400">网络异常: ${e}</span>`;
+      } finally {
+        if (btn) {
+          btn.innerHTML = origHtml;
+          btn.disabled = false;
+        }
+        lucide.createIcons();
+      }
+    }
 
     function jumpToStrategyEditor() {
       switchBottomTab('strategy');
