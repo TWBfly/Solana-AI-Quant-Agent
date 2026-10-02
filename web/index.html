@@ -316,10 +316,13 @@
               <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i>
               <span>主图:</span>
             </span>
-            <button onclick="setMainIndicator('zlema')" id="btnMain_zlema" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-cyan-600 text-white transition shadow-sm">ZLEMA</button>
+            <button onclick="setMainIndicator('strategy')" id="btnMain_strategy" class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-600 text-white transition shadow-sm">
+              <span id="labelMainStrategy">策略指标</span>
+            </button>
             <button onclick="setMainIndicator('boll')" id="btnMain_boll" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">BOLL</button>
             <button onclick="setMainIndicator('supertrend')" id="btnMain_supertrend" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">SuperTrend</button>
             <button onclick="setMainIndicator('ema')" id="btnMain_ema" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">EMA</button>
+            <button onclick="setMainIndicator('zlema')" id="btnMain_zlema" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">ZLEMA</button>
             <button onclick="setMainIndicator('none')" id="btnMain_none" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">纯K线</button>
           </div>
 
@@ -1947,7 +1950,7 @@
     }
 
     let isChartFullscreen = false;
-    let currentMainIndicator = "zlema"; // "zlema", "boll", "supertrend", "ema", "none"
+    let currentMainIndicator = "strategy"; // "strategy", "boll", "supertrend", "ema", "zlema", "none"
     let activeSubIndicators = ["VOL"]; // array of "VOL", "MACD", "RSI", "KDJ", "ATR"
 
     function updateChartHeight() {
@@ -2015,11 +2018,11 @@
 
     function setMainIndicator(ind) {
       currentMainIndicator = ind;
-      ["zlema", "boll", "supertrend", "ema", "none"].forEach(item => {
+      ["strategy", "boll", "supertrend", "ema", "zlema", "none"].forEach(item => {
         const btn = document.getElementById(`btnMain_${item}`);
         if (btn) {
           if (item === ind) {
-            btn.className = "px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-cyan-600 text-white transition shadow-sm";
+            btn.className = "px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-600 text-white transition shadow-sm";
           } else {
             btn.className = "px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition";
           }
@@ -2480,6 +2483,13 @@
       activeBacktestedStrategyId = res.strategy_id || activeBacktestedStrategyId || "strat_tb10_3a";
       activeBacktestedStrategyName = stratName;
 
+      // Update main chart indicator button label
+      const stratLabelEl = document.getElementById("labelMainStrategy");
+      if (stratLabelEl) {
+        const shortName = (stratName || "TB10.3A").split(" ")[0];
+        stratLabelEl.innerText = `${shortName} 均线/通道`;
+      }
+
       if (res.strategy_id) {
         const topSel = document.getElementById("selectStrategy");
         const chartSel = document.getElementById("chartStrategySelect");
@@ -2771,7 +2781,47 @@
       });
 
       // Overlay Main Indicator
-      if (currentMainIndicator === "zlema") {
+      if (currentMainIndicator === "strategy") {
+        if (res.strategy_indicators && res.strategy_indicators.length > 0) {
+          res.strategy_indicators.forEach(ind => {
+            series.push({
+              name: ind.name,
+              type: "line",
+              xAxisIndex: 0,
+              yAxisIndex: 0,
+              data: ind.data,
+              smooth: ind.style !== "dashed",
+              showSymbol: false,
+              lineStyle: {
+                color: ind.color,
+                width: ind.width || 1.5,
+                type: ind.style || "solid"
+              }
+            });
+          });
+        } else {
+          series.push({
+            name: "快线",
+            type: "line",
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            data: zlemaFastData,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#fbbf24", width: 1.5 }
+          });
+          series.push({
+            name: "慢线",
+            type: "line",
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            data: zlemaSlowData,
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { color: "#06b6d4", width: 1.5 }
+          });
+        }
+      } else if (currentMainIndicator === "zlema") {
         series.push({
           name: "快线 ZLEMA(9)",
           type: "line",
@@ -3108,7 +3158,16 @@
               <span>收: <b>$${c}</b></span><span>低: <b>$${l}</b></span>
             </div>`;
 
-            if (currentMainIndicator === "zlema") {
+            if (currentMainIndicator === "strategy" && res.strategy_indicators && res.strategy_indicators.length > 0) {
+              let stratTip = `<div class="text-[11px] text-slate-300 flex flex-wrap gap-x-2.5 gap-y-0.5">`;
+              res.strategy_indicators.forEach(ind => {
+                const val = ind.data[dataIdx];
+                const valStr = (val !== null && val !== undefined && !isNaN(val)) ? `$${val}` : '-';
+                stratTip += `<span>${ind.name}: <b style="color:${ind.color}">${valStr}</b></span>`;
+              });
+              stratTip += `</div>`;
+              tip += stratTip;
+            } else if (currentMainIndicator === "zlema") {
               const fast = zlemaFastData[dataIdx];
               const slow = zlemaSlowData[dataIdx];
               tip += `<div class="text-[11px] text-slate-300">ZLEMA(9): <span style="color:#fbbf24">$${fast}</span> | (21): <span style="color:#22d3ee">$${slow}</span></div>`;
@@ -3152,6 +3211,15 @@
             }
             return tip;
           }
+        },
+        legend: {
+          show: true,
+          top: 6,
+          right: "3%",
+          textStyle: { color: "#94a3b8", fontSize: 10 },
+          data: (currentMainIndicator === "strategy" && res.strategy_indicators)
+            ? res.strategy_indicators.map(i => i.name)
+            : (currentMainIndicator === "zlema" ? ["快线 ZLEMA(9)", "慢线 ZLEMA(21)"] : (currentMainIndicator === "boll" ? ["BOLL 上轨", "BOLL 中轨", "BOLL 下轨"] : (currentMainIndicator === "supertrend" ? ["SuperTrend"] : (currentMainIndicator === "ema" ? ["EMA(9)", "EMA(21)", "EMA(55)"] : []))))
         },
         title: {
           text: `标的: ${currentToken} (${currentTimeframe})   |   回测策略: ${res.strategy_name || activeBacktestedStrategyName || 'TB10.3A'}`,

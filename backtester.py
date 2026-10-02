@@ -254,9 +254,186 @@ class SolanaBacktestEngine:
         # Map timestamps to equity points
         m2m_map = {pt['timestamp']: pt for pt in broker.equity_curve}
 
+        # Build dynamic strategy indicator series for main chart display
+        strategy_indicators = []
+        if strategy_instance is not None:
+            strat_name = getattr(strategy_instance, "strategy_name", "")
+            if "tb_fast_ma" in data.columns and "tb_entry_upper55" in data.columns:
+                strategy_indicators.append({
+                    "name": "FastMA (40)",
+                    "color": "#fbbf24",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tb_fast_ma']]
+                })
+                strategy_indicators.append({
+                    "name": "SlowMA (120)",
+                    "color": "#06b6d4",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tb_slow_ma']]
+                })
+                strategy_indicators.append({
+                    "name": "突破上轨 (55)",
+                    "color": "#34d399",
+                    "style": "dashed",
+                    "width": 1.2,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tb_entry_upper55']]
+                })
+                strategy_indicators.append({
+                    "name": "离场下轨 (40)",
+                    "color": "#f87171",
+                    "style": "dashed",
+                    "width": 1.2,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tb_exit_lower40']]
+                })
+            elif "tb_fast_ma" in data.columns:
+                fast_p = getattr(strategy_instance, "fast_length", 10)
+                slow_p = getattr(strategy_instance, "slow_length", 30)
+                strategy_indicators.append({
+                    "name": f"FastMA ({fast_p})",
+                    "color": "#fbbf24",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tb_fast_ma']]
+                })
+                strategy_indicators.append({
+                    "name": f"SlowMA ({slow_p})",
+                    "color": "#06b6d4",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tb_slow_ma']]
+                })
+            elif "my_ma1" in data.columns:
+                n1 = getattr(strategy_instance, "n1", 10)
+                n2 = getattr(strategy_instance, "n2", 30)
+                strategy_indicators.append({
+                    "name": f"MA1 ({n1})",
+                    "color": "#fbbf24",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['my_ma1']]
+                })
+                strategy_indicators.append({
+                    "name": f"MA2 ({n2})",
+                    "color": "#06b6d4",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['my_ma2']]
+                })
+                if "my_hhv" in data.columns:
+                    strategy_indicators.append({
+                        "name": "唐奇安高点 (20)",
+                        "color": "#34d399",
+                        "style": "dashed",
+                        "width": 1.2,
+                        "data": [None if pd.isna(v) else round(float(v), 4) for v in data['my_hhv']]
+                    })
+                if "my_llv" in data.columns:
+                    strategy_indicators.append({
+                        "name": "唐奇安低点 (20)",
+                        "color": "#f87171",
+                        "style": "dashed",
+                        "width": 1.2,
+                        "data": [None if pd.isna(v) else round(float(v), 4) for v in data['my_llv']]
+                    })
+            elif "tdx_ma_short" in data.columns:
+                strategy_indicators.append({
+                    "name": "短周期均线 (5)",
+                    "color": "#fbbf24",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tdx_ma_short']]
+                })
+                strategy_indicators.append({
+                    "name": "长周期均线 (20)",
+                    "color": "#06b6d4",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['tdx_ma_long']]
+                })
+            elif "pine_fast_ema" in data.columns:
+                strategy_indicators.append({
+                    "name": "EMA 快线 (9)",
+                    "color": "#fbbf24",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['pine_fast_ema']]
+                })
+                strategy_indicators.append({
+                    "name": "EMA 慢线 (21)",
+                    "color": "#06b6d4",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['pine_slow_ema']]
+                })
+
+        # Fallback to Builtin ZLEMA & SuperTrend
+        if not strategy_indicators:
+            if "zlema_fast" in data.columns and "zlema_slow" in data.columns:
+                strategy_indicators.append({
+                    "name": "ZLEMA 快线 (9)",
+                    "color": "#fbbf24",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['zlema_fast']]
+                })
+                strategy_indicators.append({
+                    "name": "ZLEMA 慢线 (21)",
+                    "color": "#06b6d4",
+                    "style": "solid",
+                    "width": 1.5,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['zlema_slow']]
+                })
+            if "supertrend" in data.columns:
+                strategy_indicators.append({
+                    "name": "SuperTrend",
+                    "color": "#c084fc",
+                    "style": "dashed",
+                    "width": 1.2,
+                    "data": [None if pd.isna(v) else round(float(v), 4) for v in data['supertrend']]
+                })
+
         for i in range(len(data)):
             row = data.iloc[i]
             t_str = str(row['timestamp'])
+
+            # Select strategy-specific fast/slow indicator lines first
+            fast_val = None
+            slow_val = None
+            st_val = None
+
+            if strategy_instance is not None:
+                if 'tb_fast_ma' in row and pd.notna(row['tb_fast_ma']):
+                    fast_val = row['tb_fast_ma']
+                elif 'my_ma1' in row and pd.notna(row['my_ma1']):
+                    fast_val = row['my_ma1']
+                elif 'tdx_ma_short' in row and pd.notna(row['tdx_ma_short']):
+                    fast_val = row['tdx_ma_short']
+                elif 'pine_fast_ema' in row and pd.notna(row['pine_fast_ema']):
+                    fast_val = row['pine_fast_ema']
+
+                if 'tb_slow_ma' in row and pd.notna(row['tb_slow_ma']):
+                    slow_val = row['tb_slow_ma']
+                elif 'my_ma2' in row and pd.notna(row['my_ma2']):
+                    slow_val = row['my_ma2']
+                elif 'tdx_ma_long' in row and pd.notna(row['tdx_ma_long']):
+                    slow_val = row['tdx_ma_long']
+                elif 'pine_slow_ema' in row and pd.notna(row['pine_slow_ema']):
+                    slow_val = row['pine_slow_ema']
+
+                if 'tb_entry_upper55' in row and pd.notna(row['tb_entry_upper55']):
+                    st_val = row['tb_entry_upper55']
+                elif 'my_hhv' in row and pd.notna(row['my_hhv']):
+                    st_val = row['my_hhv']
+
+            if fast_val is None:
+                fast_val = row.get('zlema_fast', row['close'])
+            if slow_val is None:
+                slow_val = row.get('zlema_slow', row['close'])
+            if st_val is None:
+                st_val = row.get('supertrend', row['close'])
+
             ohlcv_bars.append([
                 t_str,
                 float(row['open']),
@@ -264,9 +441,9 @@ class SolanaBacktestEngine:
                 float(row['low']),
                 float(row['high']),
                 float(row.get('volume_usd', row.get('volume', 0.0))),
-                float(row.get('zlema_fast', row.get('tb_fast_ma', row.get('my_ma1', row.get('tdx_ma_short', row.get('pine_fast_ema', row['close'])))))),
-                float(row.get('zlema_slow', row.get('tb_slow_ma', row.get('my_ma2', row.get('tdx_ma_long', row.get('pine_slow_ema', row['close'])))))),
-                float(row.get('supertrend', row.get('my_hhv', row.get('tdx_vol_ma5', row['close']))))
+                float(fast_val) if pd.notna(fast_val) else float(row['close']),
+                float(slow_val) if pd.notna(slow_val) else float(row['close']),
+                float(st_val) if pd.notna(st_val) else float(row['close'])
             ])
 
             # M2M equity & benchmark equity
@@ -346,6 +523,7 @@ class SolanaBacktestEngine:
             "trades": trades,
             "ohlcv_bars": ohlcv_bars,
             "chart_markers": chart_markers,
+            "strategy_indicators": strategy_indicators,
             "equity_curve_points": equity_curve_points,
             "drawdown_curve_points": drawdown_curve_points
         }

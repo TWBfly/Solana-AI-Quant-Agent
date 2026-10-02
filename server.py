@@ -330,6 +330,7 @@ def run_backtest_api():
         "reliability": result["reliability"],
         "ohlcv_bars": result["ohlcv_bars"],
         "chart_markers": result["chart_markers"],
+        "strategy_indicators": result.get("strategy_indicators", []),
         "equity_curve_points": result["equity_curve_points"],
         "drawdown_curve_points": result["drawdown_curve_points"],
         "trades": trades_json
@@ -889,6 +890,7 @@ def backtest_custom_strategy():
         "reliability": result["reliability"],
         "ohlcv_bars": result["ohlcv_bars"],
         "chart_markers": result["chart_markers"],
+        "strategy_indicators": result.get("strategy_indicators", []),
         "equity_curve_points": result["equity_curve_points"],
         "drawdown_curve_points": result["drawdown_curve_points"],
         "trades": trades_json

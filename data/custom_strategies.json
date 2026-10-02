@@ -12,15 +12,15 @@
     "status": "STANDBY",
     "is_active_paper": false,
     "created_at": "2026-10-02 16:11:34",
-    "updated_at": "2026-10-02 17:00:41",
+    "updated_at": "2026-10-02 17:13:04",
     "backtest_summary": {
-      "net_profit_usd": 107.9882277419074,
-      "return_pct": 1.0092357732888542,
-      "win_rate": 35.0,
-      "sharpe_ratio": 1.5149706025849694,
-      "max_drawdown_pct": 1.9257261495576037,
-      "total_trades": 20,
-      "updated_at": "2026-10-02 16:53:02"
+      "net_profit_usd": -3.0013510602057067,
+      "return_pct": -0.028050009908464547,
+      "win_rate": 33.33333333333333,
+      "sharpe_ratio": -0.16956181252381955,
+      "max_drawdown_pct": 0.7373536396251033,
+      "total_trades": 9,
+      "updated_at": "2026-10-02 17:12:50"
     }
   },
   {
@@ -40,13 +40,13 @@
     "created_at": "2026-10-02 14:00:00",
     "updated_at": "2026-10-02 16:30:00",
     "backtest_summary": {
-      "net_profit_usd": -722.7322526938042,
-      "return_pct": -6.754507034521534,
-      "win_rate": 24.444444444444443,
-      "sharpe_ratio": -23.069926991276805,
-      "max_drawdown_pct": 6.841558789588959,
-      "total_trades": 90,
-      "updated_at": "2026-10-02 16:43:09"
+      "net_profit_usd": -540.7717616433129,
+      "return_pct": -5.053941697601054,
+      "win_rate": 25.675675675675674,
+      "sharpe_ratio": -20.636195692826398,
+      "max_drawdown_pct": 5.085120706095732,
+      "total_trades": 74,
+      "updated_at": "2026-10-02 17:12:51"
     }
   },
   {
