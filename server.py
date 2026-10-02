@@ -983,7 +983,7 @@ def reset_ai_config():
 def test_ai_connection():
     """Tests live connectivity to the requested or active AI provider."""
     req = request.get_json() or {}
-    provider_id = req.get("provider", "evomap")
+    provider_id = req.get("provider", "sensenova")
     api_key = req.get("api_key")
     base_url = req.get("base_url")
     model = req.get("model")

@@ -1,7 +1,7 @@
 """
 Solana AI Quant Agent - Unified AI Service & Provider Management
-Supports mainstream AI providers (EvoMap, DeepSeek, OpenAI, Claude, Qwen, Custom).
-Defaults to EvoMap configured in .env.
+Supports mainstream AI providers (SenseNova, DeepSeek, OpenAI, Claude, Qwen, Custom).
+Defaults to SenseNova (商汤日日新) configured in .env.
 """
 
 import os
@@ -19,11 +19,11 @@ class AIService:
     CONFIG_FILE = "data/ai_config.json"
 
     PROVIDER_PRESETS = {
-        "evomap": {
-            "name": "EvoMap (默认)",
-            "base_url": "https://api.evomap.ai/v1",
-            "model": "evomap-deepseek-v4-flash",
-            "description": "默认高吞吐低延迟量化模型",
+        "sensenova": {
+            "name": "商汤日日新 (默认)",
+            "base_url": "https://token.sensenova.cn/v1",
+            "model": "deepseek-v4-flash",
+            "description": "商汤 SenseNova / DeepSeek 极速推理模型",
             "is_default": True
         },
         "deepseek": {
@@ -83,11 +83,19 @@ class AIService:
                 with open(p, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
 
-                # 1. EvoMap section regex
-                if "evomap" not in keys:
-                    evo_m = re.search(r'#\s*evomap[\s\S]*?(?:APIkey|api_key|EVOMAP_API_KEY)\s*=\s*([^\r\n]+)', content, re.IGNORECASE)
-                    if evo_m:
-                        keys["evomap"] = evo_m.group(1).split('#')[0].strip()
+                # 1. 商汤日日新 (SenseNova) - 默认首选
+                if "sensenova" not in keys:
+                    sn_m = re.search(r'#\s*商汤日日新[\s\S]*?(?:APIkey|api_key|SENSENOVA_API_KEY)\s*=\s*([^\r\n]+)', content, re.IGNORECASE)
+                    if sn_m:
+                        keys["sensenova"] = sn_m.group(1).split('#')[0].strip()
+                    elif "SENSENOVA_API_KEY_3" in content:
+                        sn3_m = re.search(r'SENSENOVA_API_KEY_3\s*=\s*([^\r\n]+)', content)
+                        if sn3_m:
+                            keys["sensenova"] = sn3_m.group(1).split('#')[0].strip()
+                    elif "SENSENOVA_API_KEY_1" in content:
+                        sn1_m = re.search(r'SENSENOVA_API_KEY_1\s*=\s*([^\r\n]+)', content)
+                        if sn1_m:
+                            keys["sensenova"] = sn1_m.group(1).split('#')[0].strip()
 
                 # 2. DeepSeek
                 if "deepseek" not in keys:
@@ -130,7 +138,7 @@ class AIService:
             except Exception as e:
                 print(f"[AIService] 读取持久化配置失败 ({e})，使用默认配置")
 
-        active_provider = saved.get("active_provider", "evomap")
+        active_provider = saved.get("active_provider", "sensenova")
         providers = {}
 
         for p_id, preset in self.PROVIDER_PRESETS.items():
@@ -160,7 +168,7 @@ class AIService:
 
     def save_config(self, req_data: Dict[str, Any]) -> Dict[str, Any]:
         """Persists AI settings to data/ai_config.json."""
-        active_provider = req_data.get("active_provider", "evomap")
+        active_provider = req_data.get("active_provider", "sensenova")
         new_providers = req_data.get("providers", {})
 
         current_cfg = self.get_config()
@@ -185,7 +193,7 @@ class AIService:
         return self.get_config()
 
     def reset_to_default(self) -> Dict[str, Any]:
-        """Restores AI settings to .env defaults (EvoMap active)."""
+        """Restores AI settings to .env defaults (SenseNova active)."""
         if os.path.exists(self.config_path):
             try:
                 os.remove(self.config_path)
@@ -239,19 +247,20 @@ class AIService:
                 else:
                     return {"success": False, "latency_ms": latency, "error": f"HTTP {res.status_code}: {res.text[:200]}"}
 
-            # Standard OpenAI Compatible Endpoint (EvoMap, DeepSeek, OpenAI, Qwen, Custom)
+            # Standard OpenAI Compatible Endpoint (SenseNova, DeepSeek, OpenAI, Qwen, Custom)
             client = OpenAI(
                 base_url=url,
                 api_key=key,
-                timeout=8.0
+                timeout=12.0
             )
             resp = client.chat.completions.create(
                 model=mod,
                 messages=[{"role": "user", "content": "ping"}],
-                max_tokens=10
+                max_tokens=30
             )
             latency = int((time.time() - start_t) * 1000)
-            content = resp.choices[0].message.content or "pong"
+            msg = resp.choices[0].message
+            content = msg.content or getattr(msg, "reasoning_content", "") or "pong"
             return {
                 "success": True,
                 "latency_ms": latency,
@@ -319,7 +328,8 @@ class AIService:
             temperature=temperature,
             max_tokens=max_tokens
         )
-        return resp.choices[0].message.content or ""
+        msg = resp.choices[0].message
+        return msg.content or getattr(msg, "reasoning_content", "") or ""
 
 
 # Singleton instance

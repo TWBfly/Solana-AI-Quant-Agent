@@ -552,19 +552,19 @@
               <div class="relative">
                 <input type="password" id="settingApiKey" placeholder="输入 API Key，留空将沿用默认配置..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
               </div>
-              <p class="text-[11px] text-slate-500 mt-1" id="settingKeyHelpText">默认使用 env 文件中配置的 evomap 密钥，亦可自定义填写覆写。</p>
+              <p class="text-[11px] text-slate-500 mt-1" id="settingKeyHelpText">默认使用 env 文件中配置的商汤日日新密钥，亦可自定义填写覆写。</p>
             </div>
 
             <!-- Base URL Input -->
             <div>
               <label class="block text-slate-300 font-medium mb-1.5">接口地址 (Base URL):</label>
-              <input type="text" id="settingBaseUrl" placeholder="https://api.evomap.ai/v1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
+              <input type="text" id="settingBaseUrl" placeholder="https://token.sensenova.cn/v1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
             </div>
 
             <!-- Model Name Input -->
             <div>
               <label class="block text-slate-300 font-medium mb-1.5">模型标识 (Model ID):</label>
-              <input type="text" id="settingModel" placeholder="evomap-deepseek-v4-flash" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
+              <input type="text" id="settingModel" placeholder="deepseek-v4-flash" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-500 transition">
               <div class="flex items-center gap-1.5 mt-2 flex-wrap" id="settingQuickModels">
                 <!-- Quick Model Pills -->
               </div>
@@ -4301,11 +4301,11 @@
 
     // === Settings Modal & Unified AI Service Configuration ===
     let cachedAIConfig = null;
-    let currentSettingsProviderId = "evomap";
+    let currentSettingsProviderId = "sensenova";
     let isApiKeyVisible = false;
 
     const PROVIDER_MODEL_PRESETS = {
-      evomap: ["evomap-deepseek-v4-flash", "deepseek-chat", "gpt-4o"],
+      sensenova: ["deepseek-v4-flash", "deepseek-flash", "glm-5.2", "sensenova-6.8-flash-lite"],
       deepseek: ["deepseek-chat", "deepseek-reasoner"],
       openai: ["gpt-4o-mini", "gpt-4o", "o1-mini"],
       claude: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
@@ -4340,7 +4340,7 @@
         const res = await fetch("/api/ai/config");
         if (!res.ok) return;
         cachedAIConfig = await res.json();
-        currentSettingsProviderId = cachedAIConfig.active_provider || "evomap";
+        currentSettingsProviderId = cachedAIConfig.active_provider || "sensenova";
         renderAISettingsModal();
       } catch (e) {
         console.warn("loadAISettings error:", e);
@@ -4411,8 +4411,8 @@
       if (modInp) modInp.value = p.model || "";
 
       if (helpText) {
-        if (pid === "evomap") {
-          helpText.innerText = "默认使用 env 文件中配置的 evomap 密钥，亦可自定义填写覆写。";
+        if (pid === "sensenova") {
+          helpText.innerText = "默认使用 env 文件中配置的商汤日日新密钥，亦可自定义填写覆写。";
         } else if (p.has_env_key) {
           helpText.innerText = "已自动匹配 .env 中的环境密钥，可直接使用。";
         } else {
@@ -4568,15 +4568,15 @@
     }
 
     async function resetAISettingsToDefault() {
-      if (!confirm("确认重置为 .env 中默认的 EvoMap 配置？")) return;
+      if (!confirm("确认重置为 .env 中默认的商汤日日新配置？")) return;
       try {
         const res = await fetch("/api/ai/reset", { method: "POST" });
         if (res.ok) {
           const data = await res.json();
           cachedAIConfig = data.config;
-          currentSettingsProviderId = cachedAIConfig.active_provider || "evomap";
+          currentSettingsProviderId = cachedAIConfig.active_provider || "sensenova";
           renderAISettingsModal();
-          alert("已恢复默认 .env EvoMap 配置！");
+          alert("已恢复默认 .env 商汤日日新配置！");
         }
       } catch (e) {
         alert("重置异常: " + e);
