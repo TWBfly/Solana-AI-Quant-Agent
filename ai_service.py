@@ -83,19 +83,24 @@ class AIService:
                 with open(p, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
 
-                # 1. 商汤日日新 (SenseNova) - 默认首选
-                if "sensenova" not in keys:
-                    sn_m = re.search(r'#\s*商汤日日新[\s\S]*?(?:APIkey|api_key|SENSENOVA_API_KEY)\s*=\s*([^\r\n]+)', content, re.IGNORECASE)
-                    if sn_m:
-                        keys["sensenova"] = sn_m.group(1).split('#')[0].strip()
-                    elif "SENSENOVA_API_KEY_3" in content:
-                        sn3_m = re.search(r'SENSENOVA_API_KEY_3\s*=\s*([^\r\n]+)', content)
-                        if sn3_m:
-                            keys["sensenova"] = sn3_m.group(1).split('#')[0].strip()
-                    elif "SENSENOVA_API_KEY_1" in content:
-                        sn1_m = re.search(r'SENSENOVA_API_KEY_1\s*=\s*([^\r\n]+)', content)
-                        if sn1_m:
-                            keys["sensenova"] = sn1_m.group(1).split('#')[0].strip()
+                # 1. 商汤日日新 (SenseNova) - 默认首选，收集所有可用 Key 建立轮换池
+                sn_pool = keys.get("sensenova_pool", [])
+                sn_m = re.search(r'#\s*商汤日日新[\s\S]*?(?:APIkey|api_key|SENSENOVA_API_KEY)\s*=\s*([^\r\n]+)', content, re.IGNORECASE)
+                if sn_m:
+                    k = sn_m.group(1).split('#')[0].strip()
+                    if k and k not in sn_pool:
+                        sn_pool.append(k)
+                for env_var in ["SENSENOVA_API_KEY_1", "SENSENOVA_API_KEY_3", "SENSENOVA_API_KEY_2"]:
+                    m = re.search(rf'{env_var}\s*=\s*([^\r\n]+)', content)
+                    if m:
+                        k = m.group(1).split('#')[0].strip()
+                        if k and k not in sn_pool:
+                            sn_pool.append(k)
+                if sn_pool:
+                    keys["sensenova_pool"] = sn_pool
+                    if "sensenova" not in keys:
+                        # 优先使用 KEY_1 或首选 Key
+                        keys["sensenova"] = sn_pool[0]
 
                 # 2. DeepSeek
                 if "deepseek" not in keys:
@@ -214,7 +219,7 @@ class AIService:
 
         key = api_key if api_key is not None else p_info.get("api_key", "")
         url = (base_url or p_info.get("base_url", "")).rstrip("/")
-        mod = model or p_info.get("model", "")
+        mod = (model or p_info.get("model", "")).strip()
 
         if not key:
             return {
@@ -222,6 +227,12 @@ class AIService:
                 "latency_ms": 0,
                 "error": "未配置 API Key，请先输入密钥"
             }
+
+        is_sensenova = ("sensenova.cn" in url or provider_id == "sensenova")
+        orig_mod = mod
+        if is_sensenova and mod == "deepseek-flash":
+            # ponytail: 商汤 token.sensenova.cn 上的 legacy deepseek-flash 存在全局 EndpointRPMExceeded 限流，自动映射至 deepseek-v4-flash
+            mod = "deepseek-v4-flash"
 
         start_t = time.time()
 
@@ -248,29 +259,51 @@ class AIService:
                     return {"success": False, "latency_ms": latency, "error": f"HTTP {res.status_code}: {res.text[:200]}"}
 
             # Standard OpenAI Compatible Endpoint (SenseNova, DeepSeek, OpenAI, Qwen, Custom)
-            client = OpenAI(
-                base_url=url,
-                api_key=key,
-                timeout=12.0
-            )
-            resp = client.chat.completions.create(
-                model=mod,
-                messages=[{"role": "user", "content": "ping"}],
-                max_tokens=30
-            )
-            latency = int((time.time() - start_t) * 1000)
-            msg = resp.choices[0].message
-            content = msg.content or getattr(msg, "reasoning_content", "") or "pong"
-            return {
-                "success": True,
-                "latency_ms": latency,
-                "reply": content.strip()
-            }
+            keys_to_test = [key]
+            if is_sensenova:
+                env_keys = self.get_env_keys()
+                for k in env_keys.get("sensenova_pool", []):
+                    if k and k not in keys_to_test:
+                        keys_to_test.append(k)
+
+            last_err = None
+            for k in keys_to_test:
+                try:
+                    client = OpenAI(base_url=url, api_key=k, timeout=12.0)
+                    resp = client.chat.completions.create(
+                        model=mod,
+                        messages=[{"role": "user", "content": "ping"}],
+                        max_tokens=30
+                    )
+                    latency = int((time.time() - start_t) * 1000)
+                    msg = resp.choices[0].message
+                    content = msg.content or getattr(msg, "reasoning_content", "") or "pong"
+                    note = ""
+                    if is_sensenova and orig_mod == "deepseek-flash":
+                        note = " (已自动升级至 deepseek-v4-flash)"
+                    return {
+                        "success": True,
+                        "latency_ms": latency,
+                        "reply": f"{content.strip()}{note}"
+                    }
+                except Exception as e:
+                    last_err = e
+                    err_s = str(e)
+                    if ("429" in err_s or "quota" in err_s.lower()) and len(keys_to_test) > 1:
+                        continue
+                    break
+
+            if last_err:
+                raise last_err
 
         except Exception as e:
             latency = int((time.time() - start_t) * 1000)
             err_msg = str(e)
-            if "insufficient_user_quota" in err_msg or "quota" in err_msg.lower():
+            if "EndpointRPMExceeded" in err_msg or "EndpointTPMExceeded" in err_msg:
+                err_msg = f"商汤模型节点触发服务端限流 (429: EndpointRPMExceeded)。推荐选用 deepseek-v4-flash 或 glm-5.2。"
+            elif "insufficient_quota" in err_msg:
+                err_msg = "商汤当前 Key 额度已耗尽 (429: insufficient_quota)，请更换备用密钥。"
+            elif "insufficient_user_quota" in err_msg or "quota" in err_msg.lower():
                 err_msg = "账户余额或额度不足 (Quota Insufficient)"
             elif "invalid_api_key" in err_msg or "Incorrect API key" in err_msg or "401" in err_msg:
                 err_msg = "API Key 认证失败，请检查密钥是否正确"
@@ -296,10 +329,14 @@ class AIService:
 
         key = p_info.get("api_key", "")
         url = p_info.get("base_url", "").rstrip("/")
-        mod = p_info.get("model", "")
+        mod = (p_info.get("model", "")).strip()
 
         if not key:
             raise ValueError(f"AI 服务商 [{p_info.get('name', pid)}] 未配置 API Key，请在【设置】中配置。")
+
+        is_sensenova = ("sensenova.cn" in url or pid == "sensenova")
+        if is_sensenova and mod == "deepseek-flash":
+            mod = "deepseek-v4-flash"
 
         # Claude native
         if pid == "claude" and "anthropic.com" in url:
@@ -320,16 +357,52 @@ class AIService:
                 return data.get("content", [{}])[0].get("text", "")
             raise RuntimeError(f"Claude API 响应错误 ({res.status_code}): {res.text}")
 
-        # Standard OpenAI client
-        client = OpenAI(base_url=url, api_key=key, timeout=45.0)
-        resp = client.chat.completions.create(
-            model=mod,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
-        msg = resp.choices[0].message
-        return msg.content or getattr(msg, "reasoning_content", "") or ""
+        # Standard OpenAI client with automatic key pool failover
+        keys_to_try = [key]
+        if is_sensenova:
+            env_keys = self.get_env_keys()
+            for k in env_keys.get("sensenova_pool", []):
+                if k and k not in keys_to_try:
+                    keys_to_try.append(k)
+
+        last_err = None
+        for k in keys_to_try:
+            try:
+                client = OpenAI(base_url=url, api_key=k, timeout=45.0)
+                resp = client.chat.completions.create(
+                    model=mod,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                msg = resp.choices[0].message
+                return msg.content or getattr(msg, "reasoning_content", "") or ""
+            except Exception as e:
+                last_err = e
+                err_s = str(e)
+                if ("429" in err_s or "quota" in err_s.lower() or "RateLimit" in err_s) and len(keys_to_try) > 1:
+                    continue
+                break
+
+        # Fallback to glm-5.2 if deepseek model is globally rate-limited on SenseNova
+        if is_sensenova and last_err and ("429" in str(last_err) or "RateLimit" in str(last_err)):
+            for k in keys_to_try:
+                try:
+                    client = OpenAI(base_url=url, api_key=k, timeout=45.0)
+                    resp = client.chat.completions.create(
+                        model="glm-5.2",
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
+                    msg = resp.choices[0].message
+                    return msg.content or getattr(msg, "reasoning_content", "") or ""
+                except Exception:
+                    continue
+
+        if last_err:
+            raise last_err
+        return ""
 
 
 # Singleton instance

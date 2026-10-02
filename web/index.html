@@ -4305,7 +4305,7 @@
     let isApiKeyVisible = false;
 
     const PROVIDER_MODEL_PRESETS = {
-      sensenova: ["deepseek-v4-flash", "deepseek-flash", "glm-5.2", "sensenova-6.8-flash-lite"],
+      sensenova: ["deepseek-v4-flash", "glm-5.2", "kimi-k3", "sensenova-6.8-flash-lite"],
       deepseek: ["deepseek-chat", "deepseek-reasoner"],
       openai: ["gpt-4o-mini", "gpt-4o", "o1-mini"],
       claude: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
@@ -4408,11 +4408,17 @@
 
       if (keyInp) keyInp.value = p.api_key || "";
       if (urlInp) urlInp.value = p.base_url || "";
-      if (modInp) modInp.value = p.model || "";
+      if (modInp) {
+        if (pid === "sensenova" && (p.model === "deepseek-flash" || modInp.value === "deepseek-flash" || !p.model)) {
+          modInp.value = "deepseek-v4-flash";
+        } else {
+          modInp.value = p.model || "";
+        }
+      }
 
       if (helpText) {
         if (pid === "sensenova") {
-          helpText.innerText = "默认使用 env 文件中配置的商汤日日新密钥，亦可自定义填写覆写。";
+          helpText.innerText = "商汤极速模型推荐 deepseek-v4-flash 或 glm-5.2，已载入 .env 密钥。";
         } else if (p.has_env_key) {
           helpText.innerText = "已自动匹配 .env 中的环境密钥，可直接使用。";
         } else {
