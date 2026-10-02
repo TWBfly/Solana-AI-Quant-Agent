@@ -60,10 +60,10 @@
   <!-- Top Global Header -->
   <header class="border-b border-slate-800 bg-slate-950/90 sticky top-0 z-50 backdrop-blur-md px-6 py-2.5 flex items-center justify-between">
     <div class="flex items-center space-x-2.5">
-      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-md shadow-cyan-500/20">
-        ⚡
+      <div class="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-800 flex items-center justify-center text-cyan-400">
+        <i data-lucide="cpu" class="w-4 h-4"></i>
       </div>
-      <h1 class="text-sm sm:text-base font-bold text-white tracking-tight">Solana AI Quant Agent</h1>
+      <h1 class="text-sm sm:text-base font-bold text-white tracking-tight">Solana 量化交易系统</h1>
     </div>
 
     <!-- Right Controls: Minimalist -->
@@ -138,9 +138,9 @@
       <!-- Timeframe Selector -->
       <div class="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
         <span class="text-slate-400 px-2 font-medium">周期:</span>
-        <button onclick="setTimeframe('1m')" id="tf_1m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">1m (高频)</button>
+        <button onclick="setTimeframe('1m')" id="tf_1m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">1m</button>
         <button onclick="setTimeframe('5m')" id="tf_5m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">5m</button>
-        <button onclick="setTimeframe('15m')" id="tf_15m" class="px-2.5 py-1 rounded bg-cyan-600 text-white font-semibold transition">15m (推荐)</button>
+        <button onclick="setTimeframe('15m')" id="tf_15m" class="px-2.5 py-1 rounded bg-cyan-600 text-white font-semibold transition">15m</button>
         <button onclick="setTimeframe('1h')" id="tf_1h" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">1h</button>
         <button onclick="setTimeframe('4h')" id="tf_4h" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">4h</button>
       </div>
@@ -149,31 +149,31 @@
       <div class="flex items-center space-x-2">
         <span class="text-slate-400 font-medium">策略模型:</span>
         <select id="selectStrategy" onchange="executeBacktest(1.0)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
-          <option value="zlema_supertrend">AI 零滞后趋势突破 (ZLEMA + SuperTrend + 动量门禁)</option>
-          <option value="rsi_momentum">RSI 动量自适应趋势策略 (RSI Momentum)</option>
+          <option value="zlema_supertrend">零滞后趋势突破</option>
+          <option value="rsi_momentum">动量自适应趋势</option>
         </select>
       </div>
 
       <!-- Bar Count -->
       <div class="flex items-center space-x-2">
-        <span class="text-slate-400 font-medium">K线样本数:</span>
+        <span class="text-slate-400 font-medium">样本量:</span>
         <select id="selectBarsCount" onchange="executeBacktest(1.0)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
-          <option value="1200">1,200 根 (约 12.5 天，半月敏捷样本)</option>
-          <option value="2500" selected>2,500 根 (约 26 天，大数定律基准)</option>
-          <option value="5000">5,000 根 (约 52 天，跨牛熊样本)</option>
-          <option value="10000">10,000 根 (约 104 天，季度长周期)</option>
-          <option value="20000">20,000 根 (约 208 天，半年度大样本)</option>
-          <option value="35000">35,000 根 (约 365 天，年度全样本)</option>
+          <option value="1200">1,200 根 (12天)</option>
+          <option value="2500" selected>2,500 根 (26天)</option>
+          <option value="5000">5,000 根 (52天)</option>
+          <option value="10000">10,000 根 (季度)</option>
+          <option value="20000">20,000 根 (半年度)</option>
+          <option value="35000">35,000 根 (年度)</option>
         </select>
       </div>
 
       <!-- Trade Size -->
       <div class="flex items-center space-x-2">
-        <span class="text-slate-400 font-medium">单笔开仓:</span>
+        <span class="text-slate-400 font-medium">单笔金额:</span>
         <select id="selectTradeSize" onchange="executeBacktest(1.0)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
-          <option value="500">$500 USDC</option>
-          <option value="1000" selected>$1,000 USDC</option>
-          <option value="2500">$2,500 USDC</option>
+          <option value="500">500 U</option>
+          <option value="1000" selected>1,000 U</option>
+          <option value="2500">2,500 U</option>
         </select>
       </div>
 
@@ -183,17 +183,17 @@
     <div class="flex items-center space-x-2.5">
       <button onclick="executeBasketSuperBacktest()" id="btnBasket1000" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-purple-600/25">
         <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
-        <span>多资产 1,000 笔大数定律超级回测</span>
+        <span>多资产千笔回测</span>
       </button>
 
       <button onclick="executeBacktest(1.0)" id="btnExec1x" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-cyan-600/25">
         <i data-lucide="play" class="w-4 h-4 fill-current"></i>
-        <span>一键运行因果回测 (1x 正常成本)</span>
+        <span>运行基准回测</span>
       </button>
 
       <button onclick="executeBacktest(3.0)" id="btnExec3x" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-rose-600/25">
         <i data-lucide="flame" class="w-4 h-4"></i>
-        <span>3x 极限摩擦压测</span>
+        <span>3x 极限压测</span>
       </button>
     </div>
   </div>
@@ -205,37 +205,37 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
       <!-- 1: Net PnL -->
       <div class="glass-panel rounded-xl p-3.5">
-        <div class="text-[11px] text-slate-400">累计净利润 (Net PnL)</div>
+        <div class="text-[11px] text-slate-400">累计净利润</div>
         <div class="text-lg font-black mt-1" id="metricNetPnl">+$310.11</div>
         <div class="text-[11px] font-semibold text-emerald-400" id="metricReturnPct">+2.90%</div>
       </div>
       <!-- 2: Benchmark & Alpha -->
       <div class="glass-panel rounded-xl p-3.5">
-        <div class="text-[11px] text-slate-400">买入持有 vs 纯超额 Alpha</div>
+        <div class="text-[11px] text-slate-400">基准 / 超额收益</div>
         <div class="text-lg font-black mt-1 text-slate-200" id="metricBench">+1.25%</div>
         <div class="text-[11px] font-semibold text-cyan-400" id="metricAlpha">Alpha +1.65%</div>
       </div>
       <!-- 3: Win Rate & Trades -->
       <div class="glass-panel rounded-xl p-3.5">
-        <div class="text-[11px] text-slate-400">交易总笔数 / 胜率</div>
+        <div class="text-[11px] text-slate-400">交易笔数 / 胜率</div>
         <div class="text-lg font-black mt-1 text-white" id="metricTrades">24 笔</div>
         <div class="text-[11px] font-semibold text-slate-300" id="metricWinRate">胜率 50.0% (PF 1.99)</div>
       </div>
       <!-- 4: Sharpe & Sortino -->
       <div class="glass-panel rounded-xl p-3.5">
-        <div class="text-[11px] text-slate-400">年化夏普 / 索提诺比率</div>
+        <div class="text-[11px] text-slate-400">夏普 / 索提诺</div>
         <div class="text-lg font-black mt-1 text-purple-400" id="metricSharpe">1.82</div>
         <div class="text-[11px] font-semibold text-purple-300" id="metricSortino">Sortino 2.45</div>
       </div>
       <!-- 5: Max Drawdown -->
       <div class="glass-panel rounded-xl p-3.5">
-        <div class="text-[11px] text-slate-400">最大盯市回撤 (M2M MaxDD)</div>
+        <div class="text-[11px] text-slate-400">最大回撤</div>
         <div class="text-lg font-black mt-1 text-rose-400" id="metricMaxDD">-1.03%</div>
         <div class="text-[11px] font-semibold text-rose-300" id="metricMaxDDVal">-$111.32</div>
       </div>
       <!-- 6: Total Friction -->
       <div class="glass-panel rounded-xl p-3.5">
-        <div class="text-[11px] text-slate-400">Solana 真实摩擦全额</div>
+        <div class="text-[11px] text-slate-400">摩擦成本</div>
         <div class="text-lg font-black mt-1 text-amber-400" id="metricFriction">$205.47</div>
         <div class="text-[11px] font-semibold text-amber-300" id="metricFrictionDetail">Gas $129 | 滑点 $75</div>
       </div>
@@ -252,22 +252,22 @@
           <div class="flex items-center space-x-3 text-xs font-semibold">
             <button onclick="switchChartMode('candlestick')" id="tabBtnKLine" class="text-cyan-400 border-b-2 border-cyan-400 pb-1 flex items-center gap-1.5 font-bold">
               <i data-lucide="candlestick-chart" class="w-4 h-4"></i>
-              <span>📊 K线与买卖点标记 (Candlestick & Signals)</span>
+              <span>K线信号</span>
             </button>
             <button onclick="switchChartMode('equity')" id="tabBtnEquity" class="text-slate-400 hover:text-white pb-1 flex items-center gap-1.5 transition">
               <i data-lucide="trending-up" class="w-4 h-4"></i>
-              <span>📈 逐柱盯市净权益 vs 基准 (M2M Equity)</span>
+              <span>资金曲线</span>
             </button>
             <button onclick="switchChartMode('drawdown')" id="tabBtnDrawdown" class="text-slate-400 hover:text-white pb-1 flex items-center gap-1.5 transition">
               <i data-lucide="waves" class="w-4 h-4"></i>
-              <span>🌊 水下动态回撤 (Drawdown %)</span>
+              <span>动态回撤</span>
             </button>
           </div>
 
           <div class="flex items-center gap-2">
-            <button onclick="toggleChartFullscreen()" id="btnFullscreen" title="点击或按 ESC 全屏缩放 (双击图表亦可全屏)" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-cyan-600 text-slate-300 hover:text-white border border-slate-700/80 text-xs flex items-center gap-1.5 transition shadow-sm">
+            <button onclick="toggleChartFullscreen()" id="btnFullscreen" title="全屏缩放" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-cyan-600 text-slate-300 hover:text-white border border-slate-700/80 text-xs flex items-center gap-1.5 transition shadow-sm">
               <i data-lucide="maximize" class="w-3.5 h-3.5" id="iconFullscreen"></i>
-              <span id="textFullscreen">⛶ 全屏显示</span>
+              <span id="textFullscreen">全屏</span>
             </button>
           </div>
         </div>
@@ -278,29 +278,29 @@
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-slate-400 font-semibold flex items-center gap-1">
               <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i>
-              <span>主图加载:</span>
+              <span>主图:</span>
             </span>
-            <button onclick="setMainIndicator('zlema')" id="btnMain_zlema" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-cyan-600 text-white transition shadow-sm">ZLEMA(9,21)</button>
-            <button onclick="setMainIndicator('boll')" id="btnMain_boll" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">BOLL(20,2)</button>
+            <button onclick="setMainIndicator('zlema')" id="btnMain_zlema" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-cyan-600 text-white transition shadow-sm">ZLEMA</button>
+            <button onclick="setMainIndicator('boll')" id="btnMain_boll" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">BOLL</button>
             <button onclick="setMainIndicator('supertrend')" id="btnMain_supertrend" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">SuperTrend</button>
-            <button onclick="setMainIndicator('ema')" id="btnMain_ema" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">EMA(9,21,55)</button>
-            <button onclick="setMainIndicator('none')" id="btnMain_none" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">纯净K线</button>
+            <button onclick="setMainIndicator('ema')" id="btnMain_ema" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">EMA</button>
+            <button onclick="setMainIndicator('none')" id="btnMain_none" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">纯K线</button>
           </div>
 
           <!-- Right: 5 Sub-chart Indicators -->
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-slate-400 font-semibold flex items-center gap-1">
               <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-purple-400"></i>
-              <span>副图加载 (最多5个):</span>
+              <span>副图:</span>
             </span>
-            <button onclick="toggleSubIndicator('VOL')" id="btnSub_VOL" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-indigo-600 text-white transition shadow-sm">1. VOL 成交量</button>
-            <button onclick="toggleSubIndicator('MACD')" id="btnSub_MACD" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">2. MACD</button>
-            <button onclick="toggleSubIndicator('RSI')" id="btnSub_RSI" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">3. RSI</button>
-            <button onclick="toggleSubIndicator('KDJ')" id="btnSub_KDJ" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">4. KDJ</button>
-            <button onclick="toggleSubIndicator('ATR')" id="btnSub_ATR" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">5. ATR 波幅</button>
+            <button onclick="toggleSubIndicator('VOL')" id="btnSub_VOL" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-indigo-600 text-white transition shadow-sm">成交量</button>
+            <button onclick="toggleSubIndicator('MACD')" id="btnSub_MACD" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">MACD</button>
+            <button onclick="toggleSubIndicator('RSI')" id="btnSub_RSI" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">RSI</button>
+            <button onclick="toggleSubIndicator('KDJ')" id="btnSub_KDJ" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">KDJ</button>
+            <button onclick="toggleSubIndicator('ATR')" id="btnSub_ATR" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-slate-800 transition">ATR</button>
             <button onclick="toggleAll5SubIndicators()" id="btnSub_ALL" class="px-2.5 py-0.5 rounded text-[11px] font-sans font-bold bg-purple-900/60 text-purple-300 hover:bg-purple-600 hover:text-white border border-purple-600/70 transition shadow-sm flex items-center gap-1">
               <i data-lucide="zap" class="w-3 h-3"></i>
-              <span>一键加载 5 副图</span>
+              <span>一键全开</span>
             </button>
           </div>
         </div>
@@ -309,7 +309,7 @@
         <div id="mainChart" class="w-full h-[540px] transition-all duration-300" ondblclick="toggleChartFullscreen()"></div>
 
         <div class="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
-          <span>* 提示：支持右上角或双击全屏，滚轮缩放时间轴，支持主图与 5 个副图 (VOL/MACD/RSI/KDJ/ATR) 联动分析</span>
+          <span>* 提示：支持全屏显示、滚轮缩放时间轴，主图与 5 个副图指标联动分析</span>
           <span id="chartRangeLabel" class="font-mono text-cyan-400 font-medium">当前显示: 2,500 根 15m K线 (约 26.0 天)</span>
         </div>
       </div>
@@ -321,7 +321,7 @@
           <h2 class="text-sm font-bold text-white mb-3 flex items-center justify-between">
             <span class="flex items-center gap-1.5">
               <i data-lucide="clipboard-check" class="w-4 h-4 text-cyan-400"></i>
-              <span>深度量化指标与硬性门禁诊断卡</span>
+              <span>指标与门禁诊断</span>
             </span>
             <span class="text-[11px] px-2 py-0.5 rounded font-mono font-bold" id="badgeOverallAudit">审核通过</span>
           </h2>
@@ -329,74 +329,74 @@
           <!-- Detailed Statistical Metrics Table -->
           <div class="space-y-2 text-xs">
             <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 space-y-1.5">
-              <div class="text-slate-400 text-[11px] font-semibold mb-1">【收益与风险质量 (Risk-Adjusted Quality)】</div>
+              <div class="text-slate-400 text-[11px] font-semibold mb-1">【收益与风险】</div>
               <div class="flex justify-between">
-                <span class="text-slate-400">策略净收益率:</span>
+                <span class="text-slate-400">净收益率:</span>
                 <span class="font-mono font-bold text-emerald-400" id="auditNetReturn">+2.90%</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">标的买入持有 (Benchmark):</span>
+                <span class="text-slate-400">基准收益:</span>
                 <span class="font-mono text-slate-300" id="auditBenchReturn">+1.25%</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">超额收益 (Alpha):</span>
+                <span class="text-slate-400">超额收益:</span>
                 <span class="font-mono font-bold text-cyan-400" id="auditAlpha">+1.65%</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">年化夏普比率 (Sharpe):</span>
+                <span class="text-slate-400">年化夏普:</span>
                 <span class="font-mono text-purple-400 font-bold" id="auditSharpe">1.82</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">卡玛比率 (Calmar Ratio):</span>
+                <span class="text-slate-400">卡玛比率:</span>
                 <span class="font-mono text-purple-300" id="auditCalmar">2.81</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">最大盯市回撤 (M2M MaxDD):</span>
+                <span class="text-slate-400">最大回撤:</span>
                 <span class="font-mono text-rose-400 font-bold" id="auditMaxDD">-1.03%</span>
               </div>
             </div>
 
             <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 space-y-1.5">
-              <div class="text-slate-400 text-[11px] font-semibold mb-1">【大数定律与交易样本 (Law of Large Numbers)】</div>
+              <div class="text-slate-400 text-[11px] font-semibold mb-1">【大数定律样本】</div>
               <div class="flex justify-between">
-                <span class="text-slate-400">有效交易样本数:</span>
-                <span class="font-mono text-slate-200 font-bold" id="auditTotalTrades">24 笔 (B_MARGINAL)</span>
+                <span class="text-slate-400">交易样本数:</span>
+                <span class="font-mono text-slate-200 font-bold" id="auditTotalTrades">24 笔</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">净胜率 (Win Rate):</span>
+                <span class="text-slate-400">策略胜率:</span>
                 <span class="font-mono text-slate-200" id="auditWinRate">50.0%</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">Wilson 95% 置信区间:</span>
-                <span class="font-mono text-slate-300 text-[11px]" id="auditWilson">[31.4%, 68.6%] (跨度 37.1%)</span>
+                <span class="text-slate-400">95%置信区间:</span>
+                <span class="font-mono text-slate-300 text-[11px]" id="auditWilson">[31.4%, 68.6%]</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">盈亏比 (Profit Factor):</span>
+                <span class="text-slate-400">盈亏比:</span>
                 <span class="font-mono text-cyan-400 font-bold" id="auditPF">1.99</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">平均盈亏胜算比 (Win/Loss):</span>
+                <span class="text-slate-400">胜算比:</span>
                 <span class="font-mono text-slate-300" id="auditWinLoss">1.99</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-slate-400">平均持仓柱数:</span>
-                <span class="font-mono text-slate-300" id="auditAvgHold">23.5 柱 (约 5.8 小时)</span>
+                <span class="text-slate-400">平均持仓:</span>
+                <span class="font-mono text-slate-300" id="auditAvgHold">23.5 柱</span>
               </div>
             </div>
 
             <!-- Solana Friction Breakdown -->
             <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 space-y-1.5">
-              <div class="text-slate-400 text-[11px] font-semibold mb-1">【Solana DEX 真实全额摩擦穿透】</div>
+              <div class="text-slate-400 text-[11px] font-semibold mb-1">【摩擦成本明细】</div>
               <div class="flex justify-between text-[11px]">
-                <span class="text-slate-400">网络手续费 (Base + 优先费 + Jito):</span>
+                <span class="text-slate-400">网络手续费:</span>
                 <span class="font-mono text-amber-400" id="auditGasFees">$129.85</span>
               </div>
               <div class="flex justify-between text-[11px]">
-                <span class="text-slate-400">动态恒定乘积滑点损失:</span>
+                <span class="text-slate-400">动态滑点损失:</span>
                 <span class="font-mono text-rose-300" id="auditSlippage">$75.62</span>
               </div>
               <div class="flex justify-between text-xs font-bold pt-1 border-t border-slate-800">
-                <span class="text-slate-300">摩擦合计 (Total Friction):</span>
+                <span class="text-slate-300">摩擦合计:</span>
                 <span class="font-mono text-amber-400" id="auditTotalFriction">$205.47</span>
               </div>
             </div>
@@ -407,19 +407,19 @@
         <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] space-y-1.5">
           <div class="text-slate-400 font-bold mb-1 flex items-center gap-1">
             <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-cyan-400"></i>
-            <span>工业级三重大数定律硬性否决门禁</span>
+            <span>三重大数定律门禁</span>
           </div>
           <div class="flex items-center justify-between" id="gateP3x">
-            <span class="text-slate-400">1. 3x 极限摩擦生存门禁:</span>
-            <span class="font-semibold text-emerald-400">✅ 压测留存通过</span>
+            <span class="text-slate-400">1. 3x摩擦生存:</span>
+            <span class="font-semibold text-emerald-400">通过</span>
           </div>
           <div class="flex items-center justify-between" id="gateLLN">
-            <span class="text-slate-400">2. 大数定律样本置信门禁:</span>
-            <span class="font-semibold text-emerald-400">✅ 统计通过</span>
+            <span class="text-slate-400">2. 样本置信度:</span>
+            <span class="font-semibold text-emerald-400">通过</span>
           </div>
           <div class="flex items-center justify-between" id="gateConc">
-            <span class="text-slate-400">3. 极端利润集中度门禁:</span>
-            <span class="font-semibold text-emerald-400">✅ 非单点幸存通过</span>
+            <span class="text-slate-400">3. 利润集中度:</span>
+            <span class="font-semibold text-emerald-400">通过</span>
           </div>
         </div>
 
@@ -433,25 +433,23 @@
       <!-- Section Header -->
       <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-3">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-cyan-500/20">
-            ⚡
+          <div class="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-800 flex items-center justify-center text-cyan-400">
+            <i data-lucide="network" class="w-4 h-4"></i>
           </div>
           <div>
             <div class="font-bold text-white text-sm flex items-center gap-2">
-              <span>三维交易执行路由架构与实盘执行中枢 (Three Execution Pathways)</span>
-              <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">CEX撮合 vs DEX聚合 vs Jito-HFT</span>
+              <span>交易执行路由</span>
             </div>
             <div class="text-xs text-slate-400">
-              全维度对比中心化交易所 (CEX)、链上智能聚合 (Jupiter DEX) 与极速直连 (Jito MEV Bundles)，支持一键无缝热切换与单步穿透测速
+              对比中心化交易所、链上聚合与极速直连三种执行路径
             </div>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-400">当前活跃路由:</span>
+          <span class="text-xs text-slate-400">当前路由:</span>
           <span id="badgeActiveRouteDisplay" class="px-2.5 py-1 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-700 font-mono font-bold text-xs flex items-center gap-1.5 shadow-sm">
-            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span id="textActiveRouteName">路径 B：链上聚合器 (DEX)</span>
+            <span id="textActiveRouteName">路径 B：链上聚合器</span>
           </span>
           <button onclick="fetchExecutionRoutes()" title="刷新路由状态" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
@@ -468,20 +466,19 @@
       <div class="rounded-xl bg-slate-950 border border-slate-800/90 p-3.5">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2.5">
           <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <i data-lucide="terminal" class="w-3.5 h-3.5 text-cyan-400"></i>
-            <span>实时执行遥测控制台 (Live Execution Telemetry Terminal)</span>
+            <span>执行遥测</span>
           </div>
           <div class="flex items-center gap-2 text-[11px] text-slate-400">
             <span id="telemetryLatencyBadge" class="font-mono text-cyan-400">穿透延迟: -- ms</span>
             <span class="text-slate-600">|</span>
-            <span id="telemetryStatusBadge" class="font-mono text-emerald-400">状态: STANDBY</span>
+            <span id="telemetryStatusBadge" class="font-mono text-emerald-400">状态: 就绪</span>
             <button onclick="clearTelemetryLogs()" class="text-slate-500 hover:text-slate-300 transition text-[10px] ml-1">清屏</button>
           </div>
         </div>
 
         <div id="telemetryLogStream" class="font-mono text-xs text-slate-300 space-y-1 max-h-48 overflow-y-auto custom-scrollbar p-1">
-          <div class="text-slate-500">// 交易执行路由已就绪。点击上方任意卡片的 [设为活跃路由] 或 [触发模拟买入 $1,000] 开始实时穿透测试...</div>
+          <div class="text-slate-500">// 交易执行路由已就绪，点击上方卡片可切换路由或模拟交易...</div>
         </div>
       </div>
 
@@ -494,18 +491,18 @@
         <div class="flex items-center space-x-2">
           <button onclick="switchBottomTab('trades')" id="tabBtnTrades" class="px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-bold text-xs flex items-center gap-1.5 transition">
             <i data-lucide="list-ordered" class="w-4 h-4"></i>
-            <span>成交流水账本 (Trade Ledger)</span>
+            <span>成交流水</span>
             <span class="text-[10px] bg-slate-900/60 px-1.5 py-0.5 rounded-full" id="tableTradesCount">0 笔</span>
           </button>
           <button onclick="switchBottomTab('universe')" id="tabBtnUniverse" class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
             <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
-            <span>🌐 30 币种全资产流动性池与大数贡献排行榜</span>
-            <span class="text-[10px] bg-purple-900/50 text-purple-300 px-1.5 py-0.5 rounded-full font-mono">30 Pools</span>
+            <span>流动性排行</span>
+            <span class="text-[10px] bg-purple-900/50 text-purple-300 px-1.5 py-0.5 rounded-full font-mono">30 品种</span>
           </button>
           <button onclick="switchBottomTab('report')" id="tabBtnReport" class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
             <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
-            <span>📋 回测报告</span>
-            <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded-full font-mono">图二全指标</span>
+            <span>回测报告</span>
+            <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded-full font-mono">全量指标</span>
           </button>
         </div>
 
@@ -518,15 +515,15 @@
 
         <!-- Universe Info Badge (For Universe Tab) -->
         <div id="universeInfoBadge" class="hidden text-xs text-slate-400 flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">✅ 全部 30 标的池深均通过冲击门禁</span>
-          <span>* 点击任意标的可直接切换为主回测图表</span>
+          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">全部 30 品种流动性均通过门禁</span>
+          <span>* 点击任意标的可直接切换图表</span>
         </div>
 
         <!-- Report Info Badge (For Report Tab) -->
         <div id="reportInfoBadge" class="hidden text-xs text-slate-400 flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">✅ 包含图二全部 31 项参数 + 宏观 1442 交易日</span>
+          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono text-[11px]">包含 31 项全量指标与完整牛熊周期</span>
           <button onclick="switchChartMode('equity'); window.scrollTo({top: 0, behavior: 'smooth'});" class="px-2 py-0.5 rounded bg-cyan-900/60 text-cyan-300 border border-cyan-800 hover:bg-cyan-800 text-[11px] flex items-center gap-1">
-            <i data-lucide="line-chart" class="w-3 h-3"></i> 联动看资金曲线
+            <i data-lucide="trending-up" class="w-3 h-3"></i><span>查看资金曲线</span>
           </button>
         </div>
       </div>
@@ -543,9 +540,9 @@
               <th class="py-2.5 px-3">持仓时长</th>
               <th class="py-2.5 px-3">网络手续费</th>
               <th class="py-2.5 px-3">动态滑点</th>
-              <th class="py-2.5 px-3">全额净收益 (Net PnL)</th>
+              <th class="py-2.5 px-3">净收益</th>
               <th class="py-2.5 px-3">净回报率</th>
-              <th class="py-2.5 px-3">平仓触发诊断原因</th>
+              <th class="py-2.5 px-3">平仓原因</th>
             </tr>
           </thead>
           <tbody id="tradeTableBody" class="divide-y divide-slate-800/60 font-mono">
@@ -563,11 +560,11 @@
               <th class="py-2.5 px-3">标的代码 / 名称</th>
               <th class="py-2.5 px-3">资产分类</th>
               <th class="py-2.5 px-3">参考现价</th>
-              <th class="py-2.5 px-3">AMM 池深 (Liquidity)</th>
-              <th class="py-2.5 px-3">流动性评级与冲击门禁</th>
-              <th class="py-2.5 px-3">大数回测交易笔数</th>
+              <th class="py-2.5 px-3">池深流动性</th>
+              <th class="py-2.5 px-3">评级与门禁</th>
+              <th class="py-2.5 px-3">大数回测笔数</th>
               <th class="py-2.5 px-3">单币胜率</th>
-              <th class="py-2.5 px-3">策略净贡献 (Net PnL)</th>
+              <th class="py-2.5 px-3">策略净贡献</th>
               <th class="py-2.5 px-3">快捷操作</th>
             </tr>
           </thead>
@@ -588,24 +585,24 @@
             </span>
             <div>
               <div class="font-bold text-white text-sm flex items-center gap-2">
-                <span>全要素回测深度报告</span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">1:1 对齐图二标准 (TradeBlazer / MultiCharts)</span>
+                <span>全要素回测报告</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">机构级标准</span>
               </div>
-              <div class="text-xs text-slate-400">真实扣除 Solana 动态流动性滑点与网络 Gas 费 | 跨越 2022~2026 完整牛熊大周期 (1442 交易日)</div>
+              <div class="text-xs text-slate-400">扣除动态流动性滑点与网络费用，覆盖 2022~2026 牛熊周期 (1442 交易日)</div>
             </div>
           </div>
           <div class="flex items-center gap-2">
             <button onclick="switchChartMode('equity'); window.scrollTo({top: 0, behavior: 'smooth'});" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition">
               <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
-              <span>📈 切换主图至资金曲线</span>
+              <span>资金曲线</span>
             </button>
             <button onclick="switchChartMode('drawdown'); window.scrollTo({top: 0, behavior: 'smooth'});" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-md shadow-rose-600/20 transition">
-              <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
-              <span>🌊 切换主图至水下回撤</span>
+              <i data-lucide="waves" class="w-3.5 h-3.5"></i>
+              <span>水下回撤</span>
             </button>
-            <button onclick="loadInstitutionalReport()" title="重载 2022~2026 跨越 1442 交易日之图二 1:1 对照全集基准" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+            <button onclick="loadInstitutionalReport()" title="重载 2022~2026 跨越 1442 交易日全集基准" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
               <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-              <span>🔄 图二 1442 日基准</span>
+              <span>1442日基准</span>
             </button>
           </div>
         </div>
@@ -619,26 +616,26 @@
               <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
                 <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
                   <i data-lucide="pie-chart" class="w-4 h-4 text-cyan-400"></i>
-                  <span>投资组合核心绩效与风险调整比率</span>
+                  <span>核心绩效与风险比率</span>
                 </span>
                 <span class="text-[10px] text-slate-400 font-mono">16 项综合指标</span>
               </div>
 
               <div class="divide-y divide-slate-800/60 text-xs font-mono">
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">净值 (NAV):</span>
+                  <span class="text-slate-400 font-sans">净值:</span>
                   <span id="inst_nav" class="font-bold text-white">1.0024</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">净利润 (Net Profit):</span>
+                  <span class="text-slate-400 font-sans">净利润:</span>
                   <span id="inst_net_pnl" class="font-bold text-emerald-400">+$121.46</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">年化收益率 (单利):</span>
+                  <span class="text-slate-400 font-sans">年化收益(单利):</span>
                   <span id="inst_ann_simple" class="text-slate-200">0.06%</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">年化收益率 (复利):</span>
+                  <span class="text-slate-400 font-sans">年化收益(复利):</span>
                   <span id="inst_ann_compound" class="text-slate-200">0.06%</span>
                 </div>
                 <div class="flex justify-between py-1.5">
@@ -650,31 +647,31 @@
                   <span id="inst_max_dd_pct" class="font-bold text-rose-400">-4.17%</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">夏普比率 (Sharpe Ratio):</span>
+                  <span class="text-slate-400 font-sans">夏普比率:</span>
                   <span id="inst_sharpe" class="font-bold text-cyan-400">0.0719</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">收益风险比 (Calmar Ratio):</span>
+                  <span class="text-slate-400 font-sans">卡玛比率:</span>
                   <span id="inst_calmar" class="text-slate-200">0.0574</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">调整收益风险比 (Sortino):</span>
+                  <span class="text-slate-400 font-sans">索提诺比率:</span>
                   <span id="inst_sortino" class="text-slate-200">0.0495</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">R 平方 (R-Squared 资金拟合度):</span>
+                  <span class="text-slate-400 font-sans">拟合度 R²:</span>
                   <span id="inst_r_squared" class="font-bold text-purple-400">0.0363</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">总交易次数:</span>
+                  <span class="text-slate-400 font-sans">交易笔数:</span>
                   <span id="inst_total_trades" class="text-slate-200">219 笔</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">策略胜率 (Win Rate):</span>
+                  <span class="text-slate-400 font-sans">策略胜率:</span>
                   <span id="inst_win_rate" class="font-bold text-emerald-400">42.01%</span>
                 </div>
                 <div class="flex justify-between py-1.5">
-                  <span class="text-slate-400 font-sans">平均利润 (每笔期望):</span>
+                  <span class="text-slate-400 font-sans">每笔期望利润:</span>
                   <span id="inst_avg_profit" class="text-slate-200">$0.55</span>
                 </div>
                 <div class="flex justify-between py-1.5">
@@ -692,51 +689,51 @@
           <!-- Right 2 Subtables (Takes 7 cols on lg) -->
           <div class="lg:col-span-7 space-y-4">
             
-            <!-- Right Top Subtable: 按金额 vs 按价格% 损益对比 (6项) -->
+            <!-- Right Top Subtable: 损益结构对比 -->
             <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-4">
               <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
                 <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
                   <i data-lucide="scale" class="w-4 h-4 text-emerald-400"></i>
-                  <span>损益结构对比 (按金额 vs 按价格%)</span>
+                  <span>损益结构对比</span>
                 </span>
-                <span class="text-[10px] text-slate-400 font-mono">图二右上 6 项</span>
+                <span class="text-[10px] text-slate-400 font-mono">损益分布</span>
               </div>
               <table class="w-full text-left text-xs font-mono">
                 <thead class="text-slate-400 uppercase text-[11px] border-b border-slate-800/80">
                   <tr>
                     <th class="py-2 font-sans">指标项目</th>
-                    <th class="py-2 text-right">按金额 (USD)</th>
+                    <th class="py-2 text-right">按金额</th>
                     <th class="py-2 text-right">按价格%</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60">
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">总盈利 (Gross Profit)</td>
+                    <td class="py-1.5 font-sans text-slate-300">总盈利</td>
                     <td id="inst_gross_win_amt" class="py-1.5 text-right font-bold text-emerald-400">+$11,939.64</td>
                     <td id="inst_gross_win_pct" class="py-1.5 text-right font-bold text-emerald-400">+477.59%</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">总亏损 (Gross Loss)</td>
+                    <td class="py-1.5 font-sans text-slate-300">总亏损</td>
                     <td id="inst_gross_loss_amt" class="py-1.5 text-right font-bold text-rose-400">-$11,759.98</td>
                     <td id="inst_gross_loss_pct" class="py-1.5 text-right font-bold text-rose-400">-470.40%</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">盈亏比 (Win/Loss Ratio)</td>
+                    <td class="py-1.5 font-sans text-slate-300">盈亏比</td>
                     <td id="inst_pnl_ratio_amt" class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
                     <td id="inst_pnl_ratio_pct" class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">盈利因子 (Profit Factor)</td>
+                    <td class="py-1.5 font-sans text-slate-300">盈利因子</td>
                     <td id="inst_pf_amt" class="py-1.5 text-right text-slate-200">1.0153</td>
                     <td id="inst_pf_pct" class="py-1.5 text-right text-slate-200">1.0153</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">最大浮动盈利 (Max M2M Peak)</td>
+                    <td class="py-1.5 font-sans text-slate-300">最大浮动盈利</td>
                     <td id="inst_max_float_win" class="py-1.5 text-right text-emerald-300">+$584.37</td>
                     <td class="py-1.5 text-right text-slate-500">--</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">最大浮动亏损 (Max M2M Dip)</td>
+                    <td class="py-1.5 font-sans text-slate-300">最大浮动亏损</td>
                     <td id="inst_max_float_loss" class="py-1.5 text-right text-rose-300">-$256.32</td>
                     <td class="py-1.5 text-right text-slate-500">--</td>
                   </tr>
@@ -744,14 +741,14 @@
               </table>
             </div>
 
-            <!-- Right Bottom Subtable: 按市值加权 vs 按价格% 利润率与摩擦成本 (9项) -->
+            <!-- Right Bottom Subtable: 报酬率与摩擦成本 -->
             <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-4">
               <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
                 <span class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
                   <i data-lucide="activity" class="w-4 h-4 text-purple-400"></i>
-                  <span>期望报酬率、胜算率与摩擦成本 (按市值加权 vs 价格%)</span>
+                  <span>报酬率与摩擦成本</span>
                 </span>
-                <span class="text-[10px] text-slate-400 font-mono">图二右下 9 项</span>
+                <span class="text-[10px] text-slate-400 font-mono">统计明细</span>
               </div>
               <table class="w-full text-left text-xs font-mono">
                 <thead class="text-slate-400 uppercase text-[11px] border-b border-slate-800/80">
@@ -763,32 +760,32 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800/60">
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">平均利润率% (Avg Return)</td>
+                    <td class="py-1.5 font-sans text-slate-300">平均利润率%</td>
                     <td id="inst_avg_ret_weighted" class="py-1.5 text-right text-emerald-400 font-bold">0.02%</td>
                     <td id="inst_avg_ret_price" class="py-1.5 text-right text-emerald-400 font-bold">0.03%</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">平均盈利率% (Avg Win Return)</td>
+                    <td class="py-1.5 font-sans text-slate-300">平均盈利率%</td>
                     <td id="inst_avg_win_price" class="py-1.5 text-right text-emerald-400">5.19%</td>
                     <td class="py-1.5 text-right text-emerald-400">5.19%</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">平均亏损率% (Avg Loss Return)</td>
+                    <td class="py-1.5 font-sans text-slate-300">平均亏损率%</td>
                     <td id="inst_avg_loss_price" class="py-1.5 text-right text-rose-400">-3.70%</td>
                     <td class="py-1.5 text-right text-rose-400">-3.70%</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">盈亏率比 (Rate Ratio)</td>
+                    <td class="py-1.5 font-sans text-slate-300">盈亏率比</td>
                     <td id="inst_rate_ratio" class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
                     <td class="py-1.5 text-right text-cyan-300 font-bold">1.4015</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">盈利因子 (Profit Factor)</td>
+                    <td class="py-1.5 font-sans text-slate-300">盈利因子</td>
                     <td id="inst_pf_weighted" class="py-1.5 text-right text-slate-200">1.0153</td>
                     <td class="py-1.5 text-right text-slate-200">1.0153</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">胜算率% (Odds Ratio)</td>
+                    <td class="py-1.5 font-sans text-slate-300">胜算率%</td>
                     <td id="inst_odds_ratio" class="py-1.5 text-right font-bold text-amber-300">0.59%</td>
                     <td class="py-1.5 text-right font-bold text-amber-300">0.59%</td>
                   </tr>
@@ -798,12 +795,12 @@
                     <td class="py-1.5 text-right text-slate-500">--</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">总交易日数 (Trading Days)</td>
+                    <td class="py-1.5 font-sans text-slate-300">总交易天数</td>
                     <td id="inst_trading_days" class="py-1.5 text-right text-slate-200">1442 天</td>
                     <td class="py-1.5 text-right text-slate-500">--</td>
                   </tr>
                   <tr>
-                    <td class="py-1.5 font-sans text-slate-300">年均交易日数 (Annual Trading Days)</td>
+                    <td class="py-1.5 font-sans text-slate-300">年均交易天数</td>
                     <td id="inst_annual_trading_days" class="py-1.5 text-right text-slate-200">365.25 天</td>
                     <td class="py-1.5 text-right text-slate-500">--</td>
                   </tr>
@@ -831,7 +828,7 @@
                   <th class="py-2.5 px-3">交易笔数</th>
                   <th class="py-2.5 px-3">盈利单数 / 胜率</th>
                   <th class="py-2.5 px-3">网络摩擦损耗</th>
-                  <th class="py-2.5 px-3">年度全额净收益 (USD)</th>
+                  <th class="py-2.5 px-3">年度净收益</th>
                   <th class="py-2.5 px-3">年度收益率%</th>
                   <th class="py-2.5 px-3">年度盈亏表现</th>
                 </tr>
@@ -896,13 +893,13 @@
             <div class="text-xs text-slate-400 mt-1">日内最大右尾收益与左尾风控</div>
           </div>
           <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5">
-            <div class="text-[11px] text-slate-400 mb-1">日均期望收益 (Avg Daily PnL)</div>
+            <div class="text-[11px] text-slate-400 mb-1">日均期望收益</div>
             <div class="text-base font-bold text-emerald-400 font-mono" id="instDailyAvg">+$0.82 / 天</div>
             <div class="text-xs text-slate-400 mt-1">大数定律稳定正向现金流</div>
           </div>
           <div class="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5">
             <div class="text-[11px] text-slate-400 mb-1">破产概率与尾部生存</div>
-            <div class="text-base font-bold text-emerald-400 font-mono">P(Ruin) = 0.00%</div>
+            <div class="text-base font-bold text-emerald-400 font-mono">0.00%</div>
             <div class="text-xs text-slate-400 mt-1">最大回撤仅 4.17%，本金绝对安全</div>
           </div>
         </div>
@@ -995,14 +992,14 @@
         });
         if (res.ok) {
           const data = await res.json();
-          alert(`✅ 成功将 ${data.bars_imported} 根 ${currentToken} 真实市场K线存入 SQLite 数据库！`);
+          alert(`成功导入 ${data.bars_imported} 根 ${currentToken} 真实K线`);
           await fetchDbStats();
           executeBacktest(1.0);
         } else {
-          alert("❌ 同步失败，请检查网络或稍后重试");
+          alert("同步失败，请检查网络或稍后重试");
         }
       } catch (e) {
-        alert("❌ 同步请求异常: " + e.message);
+        alert("同步请求异常: " + e.message);
       } finally {
         btn.innerHTML = origHtml;
         btn.disabled = false;
@@ -1567,7 +1564,7 @@
 
       if (isChartFullscreen) {
         container.classList.add("chart-fullscreen");
-        if (textEl) textEl.innerText = "🗗 退出全屏 (ESC)";
+        if (textEl) textEl.innerText = "退出全屏";
         if (iconEl) iconEl.setAttribute("data-lucide", "minimize");
         try {
           if (container.requestFullscreen && !document.fullscreenElement) {
@@ -1576,7 +1573,7 @@
         } catch (e) {}
       } else {
         container.classList.remove("chart-fullscreen");
-        if (textEl) textEl.innerText = "⛶ 全屏显示";
+        if (textEl) textEl.innerText = "全屏";
         if (iconEl) iconEl.setAttribute("data-lucide", "maximize");
         try {
           if (document.fullscreenElement && document.exitFullscreen) {
@@ -2099,26 +2096,26 @@
       const p3xPassed = res.stress_mult > 1 ? res.net_profit_usd > 0 : true;
       document.getElementById("gateP3x").innerHTML = `
         <span class="text-slate-400">1. 3x 极限摩擦生存门禁:</span>
-        <span class="font-semibold ${p3xPassed ? 'text-emerald-400' : 'text-rose-400'}">${p3xPassed ? '✅ 压测通过' : '❌ 高摩擦转亏'}</span>
+        <span class="font-semibold ${p3xPassed ? 'text-emerald-400' : 'text-rose-400'}">${p3xPassed ? '压测通过' : '未通过'}</span>
       `;
       const llnPassed = res.total_trades >= 20;
       document.getElementById("gateLLN").innerHTML = `
         <span class="text-slate-400">2. 大数定律样本置信门禁:</span>
-        <span class="font-semibold ${llnPassed ? 'text-emerald-400' : 'text-amber-400'}">${llnPassed ? '✅ 样本达标' : '⚠️ 样本较少'}</span>
+        <span class="font-semibold ${llnPassed ? 'text-emerald-400' : 'text-amber-400'}">${llnPassed ? '样本达标' : '不足'}</span>
       `;
       const concPassed = res.top3_concentration_pct <= 55.0;
       document.getElementById("gateConc").innerHTML = `
         <span class="text-slate-400">3. 极端利润集中度门禁:</span>
-        <span class="font-semibold ${concPassed ? 'text-emerald-400' : 'text-amber-400'}">${concPassed ? '✅ 分布健康' : '⚠️ 前3笔占比较高'}</span>
+        <span class="font-semibold ${concPassed ? 'text-emerald-400' : 'text-amber-400'}">${concPassed ? '分布健康' : '偏高'}</span>
       `;
 
       const auditBadge = document.getElementById("badgeOverallAudit");
       if (res.net_profit_usd > 0 && llnPassed) {
         auditBadge.className = "text-[11px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800";
-        auditBadge.innerText = "🟢 策略准入 (APPROVED)";
+        auditBadge.innerText = "准入通过";
       } else {
         auditBadge.className = "text-[11px] px-2 py-0.5 rounded font-mono font-bold bg-rose-950 text-rose-400 border border-rose-800";
-        auditBadge.innerText = "🔴 需风控复核 (REVIEW)";
+        auditBadge.innerText = "需复核";
       }
 
       // 3. Render Chart
@@ -2295,7 +2292,7 @@
 
       // Series for Main Chart
       series.push({
-        name: "K线 (OHLC)",
+        name: "K线",
         type: "candlestick",
         xAxisIndex: 0,
         yAxisIndex: 0,
@@ -2445,7 +2442,7 @@
           });
 
           series.push({
-            name: "成交量 (USD)",
+            name: "成交量",
             type: "bar",
             xAxisIndex: gridIdx,
             yAxisIndex: gridIdx,
@@ -2690,7 +2687,7 @@
                 const border = isBuy ? "#10b981" : "#ef4444";
                 const txtColor = isBuy ? "#34d399" : "#f87171";
                 tip += `<div style="margin-top:3px;padding:3px 6px;border-radius:4px;background:${bg};border:1px solid ${border};font-size:11px;">
-                  <span style="font-weight:bold;color:${txtColor}">${isBuy ? '🟢 买入开仓' : '🔴 卖出平仓'}</span>: <span style="color:#f8fafc">${m.value || m.name}</span>
+                  <span style="font-weight:bold;color:${txtColor}">${isBuy ? '买入开仓' : '卖出平仓'}</span>: <span style="color:#f8fafc">${m.value || m.name}</span>
                 </div>`;
               });
               tip += `</div>`;
@@ -2726,7 +2723,7 @@
           textStyle: { color: "#e2e8f0", fontSize: 11 }
         },
         legend: {
-          data: ["策略净权益 (扣除全额摩擦)", "标的买入持有 (Benchmark)"],
+          data: ["策略净收益", "基准持有"],
           textStyle: { color: "#94a3b8" },
           top: "2%"
         },
@@ -2747,7 +2744,7 @@
         dataZoom: [{ type: "inside", start: 0, end: 100 }, { show: true, bottom: "2%", height: 16 }],
         series: [
           {
-            name: "策略净权益 (扣除全额摩擦)",
+            name: "策略净收益",
             type: "line",
             smooth: true,
             showSymbol: false,
@@ -2761,7 +2758,7 @@
             }
           },
           {
-            name: "标的买入持有 (Benchmark)",
+            name: "基准持有",
             type: "line",
             smooth: true,
             showSymbol: false,
@@ -2947,17 +2944,17 @@
           : "border-slate-800 bg-slate-900/50 hover:border-slate-700";
         
         const activeBadge = isActive
-          ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>活跃路由</span>`
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold">活跃</span>`
           : `<span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 border border-slate-700">就绪</span>`;
 
         const atomicHtml = route.atomic_protection
           ? `<div class="text-[11px] p-2 rounded-lg bg-emerald-950/60 border border-emerald-800/80 text-emerald-300">
-               <span class="font-bold flex items-center gap-1">🛡️ 亏损零损耗原子回滚 (All-or-None)</span>
-               <span class="text-[10px] text-emerald-400/90">滑点超标或套利无利时整包失败回滚，不扣除本金</span>
+               <span class="font-bold flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i>原子回滚保护</span>
+               <span class="text-[10px] text-emerald-400/90">滑点超标或无利润时全单撤销，零本金损失</span>
              </div>`
           : `<div class="text-[11px] p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 text-slate-400">
-               <span class="flex items-center gap-1 text-slate-400">无原子回滚保护</span>
-               <span class="text-[10px] text-slate-500">${route.id === 'ROUTE_A_CEX' ? '单边撮合成交不可撤销' : '上链即扣网络 Gas'}</span>
+               <span class="flex items-center gap-1.5 text-slate-400"><i data-lucide="shield-off" class="w-3.5 h-3.5"></i>普通执行</span>
+               <span class="text-[10px] text-slate-500">${route.id === 'ROUTE_A_CEX' ? '单边撮合成交不可撤销' : '上链即消耗网络费用'}</span>
              </div>`;
 
         return `
@@ -2977,29 +2974,29 @@
               <!-- Metric Grid -->
               <div class="grid grid-cols-2 gap-2 text-xs font-mono mb-3">
                 <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
-                  <div class="text-[10px] text-slate-400 font-sans">交易延迟 (Latency)</div>
+                  <div class="text-[10px] text-slate-400 font-sans">交易延迟</div>
                   <div class="font-bold ${route.id === 'ROUTE_A_CEX' ? 'text-emerald-400' : (route.id === 'ROUTE_C_HFT' ? 'text-cyan-400' : 'text-amber-400')}">
-                    ⚡ ${route.latency_typical_ms} ms
+                    ${route.latency_typical_ms} ms
                   </div>
                   <div class="text-[9px] text-slate-500 font-sans">${route.latency_range}</div>
                 </div>
 
                 <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
-                  <div class="text-[10px] text-slate-400 font-sans">交易费率 / Gas</div>
+                  <div class="text-[10px] text-slate-400 font-sans">交易费率</div>
                   <div class="font-bold text-slate-200">${route.fee_rate.split(' ')[0]}</div>
                   <div class="text-[9px] text-slate-500 font-sans">${route.gas_sol}</div>
                 </div>
 
                 <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
-                  <div class="text-[10px] text-slate-400 font-sans">撮合引擎架构</div>
+                  <div class="text-[10px] text-slate-400 font-sans">撮合引擎</div>
                   <div class="font-medium text-purple-300 text-[11px] truncate" title="${route.engine}">${route.engine.split(' ')[0]}</div>
                   <div class="text-[9px] text-slate-500 font-sans">滑点: ${route.slippage.split(' ')[0]}</div>
                 </div>
 
                 <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
-                  <div class="text-[10px] text-slate-400 font-sans">虚拟盘撮合支持</div>
+                  <div class="text-[10px] text-slate-400 font-sans">模拟撮合</div>
                   <div class="font-medium text-slate-300 text-[11px] truncate" title="${route.virtual_trading}">${route.virtual_trading.split(' ')[0]}</div>
-                  <div class="text-[9px] text-slate-500 font-sans">实时沙盒撮合</div>
+                  <div class="text-[9px] text-slate-500 font-sans">沙盒撮合</div>
                 </div>
               </div>
 
@@ -3019,19 +3016,19 @@
             <div class="pt-2 border-t border-slate-800/80 space-y-2">
               <div class="grid grid-cols-2 gap-2">
                 <button onclick="executeRouteOrder('${route.id}', 'BUY', 1000)" class="py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition shadow-sm">
-                  <span>🚀 模拟买入 $1,000</span>
+                  <span>模拟买入 1,000 U</span>
                 </button>
                 <button onclick="executeRouteOrder('${route.id}', 'SELL', 1000)" class="py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition shadow-sm">
-                  <span>📉 模拟平仓 / 卖出</span>
+                  <span>模拟卖出</span>
                 </button>
               </div>
 
               ${isActive 
                 ? `<div class="w-full py-1 text-center text-xs font-semibold text-cyan-400 bg-cyan-950/50 rounded-lg border border-cyan-800/60">
-                     ✓ 当前全局活跃路由
+                     当前活跃路由
                    </div>`
                 : `<button onclick="selectRoute('${route.id}')" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-200 hover:text-white font-semibold text-xs transition border border-slate-700 hover:border-cyan-500">
-                     ⚡ 设为活跃执行路由
+                     设为活跃路由
                    </button>`
               }
             </div>
@@ -3052,7 +3049,7 @@
         if (res.ok) {
           const data = await res.json();
           currentActiveRouteId = data.active_route;
-          appendTelemetryLog(`[${new Date().toLocaleTimeString()}] 🔄 全局活跃执行路由已无缝热切换为: ${routeId}`);
+          appendTelemetryLog(`[${new Date().toLocaleTimeString()}] [路由切换] 全局活跃路由已切换为: ${routeId}`);
           fetchExecutionRoutes();
         }
       } catch (e) {
@@ -3065,9 +3062,9 @@
       const statBadge = document.getElementById("telemetryStatusBadge");
       
       if (latBadge) latBadge.innerText = "穿透测速中...";
-      if (statBadge) statBadge.innerText = "状态: EXECUTING...";
+      if (statBadge) statBadge.innerText = "状态: 执行中...";
 
-      appendTelemetryLog(`[${new Date().toLocaleTimeString()}] ▶ 正在向 [${routeId}] 发起 ${side} $${amountUsd} USD 穿透模拟订单...`);
+      appendTelemetryLog(`[${new Date().toLocaleTimeString()}] [发起订单] 向 [${routeId}] 提交 ${side === 'BUY' ? '买入' : '卖出'} $${amountUsd} 模拟订单...`);
 
       try {
         const res = await fetch("/api/route/execute_demo", {
@@ -3084,7 +3081,8 @@
         if (res.ok) {
           const data = await res.json();
           if (latBadge) latBadge.innerText = `穿透延迟: ${data.latency_ms.toFixed(1)} ms`;
-          if (statBadge) statBadge.innerText = `状态: ${data.execution_status}`;
+          const statusMap = { "FILLED": "已成交", "CONFIRMED": "已确认", "BUNDLE_LANDED": "已上链" };
+          if (statBadge) statBadge.innerText = `状态: ${statusMap[data.execution_status] || data.execution_status}`;
 
           // Stream logs
           if (data.telemetry_logs && data.telemetry_logs.length > 0) {
@@ -3092,19 +3090,19 @@
           }
 
           // Summary log
-          const atomicTag = data.atomic_protection ? " [🛡️ 原子保本回滚就绪]" : "";
+          const atomicTag = data.atomic_protection ? " [原子保本保护]" : "";
           appendTelemetryLog(
-            `[${new Date().toLocaleTimeString()}] 📊 成交结算摘要: 成交价 $${data.execution_price.toFixed(4)} | 滑点: ${data.slippage_rate_bps.toFixed(1)} bps | 摩擦总计: $${data.total_friction_usd.toFixed(2)} (Gas: $${data.network_gas_usd.toFixed(2)}, Tip: $${data.jito_tip_usd.toFixed(3)})${atomicTag}`,
+            `[${new Date().toLocaleTimeString()}] [结算摘要] 成交价: $${data.execution_price.toFixed(4)} | 滑点: ${data.slippage_rate_bps.toFixed(1)} bps | 摩擦总计: $${data.total_friction_usd.toFixed(2)} (网络费: $${data.network_gas_usd.toFixed(2)}, 小费: $${data.jito_tip_usd.toFixed(3)})${atomicTag}`,
             routeId
           );
 
           // Refresh live status & ticker
           fetchTokenStatus(currentToken);
         } else {
-          appendTelemetryLog(`[${new Date().toLocaleTimeString()}] ❌ 路由执行异常: HTTP ${res.status}`);
+          appendTelemetryLog(`[${new Date().toLocaleTimeString()}] [异常] 路由执行失败: HTTP ${res.status}`);
         }
       } catch (e) {
-        appendTelemetryLog(`[${new Date().toLocaleTimeString()}] ❌ 网络请求失败: ${e.message}`);
+        appendTelemetryLog(`[${new Date().toLocaleTimeString()}] [异常] 网络请求失败: ${e.message}`);
       }
     }
 
@@ -3113,13 +3111,13 @@
       if (!stream) return;
 
       let colorClass = "text-slate-300";
-      if (text.includes("✅") || text.includes("FILLED") || text.includes("CONFIRMED") || text.includes("BUNDLE_LANDED")) {
+      if (text.includes("成交") || text.includes("已确认") || text.includes("已上链") || text.includes("完成")) {
         colorClass = "text-emerald-400 font-bold";
-      } else if (text.includes("🛡️") || text.includes("原子")) {
+      } else if (text.includes("原子") || text.includes("保护")) {
         colorClass = "text-amber-300 font-semibold";
-      } else if (text.includes("❌")) {
+      } else if (text.includes("异常") || text.includes("失败")) {
         colorClass = "text-rose-400 font-bold";
-      } else if (text.includes("⚡") || text.includes("CLOB") || text.includes("gRPC")) {
+      } else if (text.includes("撮合") || text.includes("路由") || text.includes("连接") || text.includes("组装") || text.includes("投递") || text.includes("广播")) {
         colorClass = "text-cyan-300";
       }
 
@@ -3133,7 +3131,7 @@
     function clearTelemetryLogs() {
       const stream = document.getElementById("telemetryLogStream");
       if (stream) {
-        stream.innerHTML = `<div class="text-slate-500">// 实时控制台已清空。就绪监听新的订单穿透...</div>`;
+        stream.innerHTML = `<div class="text-slate-500">// 实时控制台已清空，就绪等待订单执行...</div>`;
       }
     }
   </script>

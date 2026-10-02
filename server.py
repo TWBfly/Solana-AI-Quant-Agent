@@ -445,58 +445,58 @@ def get_execution_routes():
         {
             "id": "ROUTE_A_CEX",
             "tag": "路径 A",
-            "name": "中心化交易所 (CEX)",
+            "name": "中心化交易所",
             "provider": "Binance / OKX / Bybit API",
-            "engine": "内存订单簿撮合 (CLOB)",
+            "engine": "内存订单簿撮合",
             "latency_range": "5 ms – 50 ms",
             "latency_typical_ms": 18.5,
-            "fee_rate": "0.04% (Taker) / 0.02% (Maker)",
-            "gas_sol": "0 SOL (免链上 Gas)",
-            "slippage": "极窄深度滑点 (~1.2 bps)",
+            "fee_rate": "0.04% (吃单) / 0.02% (挂单)",
+            "gas_sol": "0 SOL (免网络费)",
+            "slippage": "深度滑点 (~1.2 bps)",
             "atomic_protection": False,
-            "atomic_desc": "无原子回滚 (单边撮合，不可撤销)",
-            "scenarios": "SOL 现货 / U本位永续合约 CTA、趋势突破、跨期套利",
-            "virtual_trading": "CEX 官方 Demo Trading / Testnet API",
-            "pros": "超低延迟 (18ms)、极低费率 (0.04%)、无 Gas 损耗、流动性充裕",
-            "cons": "平台托管风险 (FTX 风险)、无法捕捉链上原生 Meme/DEX 差价 Alpha",
+            "atomic_desc": "无原子回滚（单边撮合成交不可撤销）",
+            "scenarios": "现货与合约趋势突破、跨期套利",
+            "virtual_trading": "交易所官方模拟盘 / 模拟网关",
+            "pros": "超低延迟 (18ms)、极低费率 (0.04%)、无网络费",
+            "cons": "中心化托管风险、无法交易链上独有代币",
             "status": "active" if paper_broker.active_route == "ROUTE_A_CEX" else "standby"
         },
         {
             "id": "ROUTE_B_DEX",
             "tag": "路径 B",
-            "name": "链上聚合器 / DEX API",
-            "provider": "Jupiter v6 API / Raydium SDK",
-            "engine": "智能跨池拆单 (AMM 恒定乘积 / CLMM 集中流动性)",
+            "name": "链上聚合器",
+            "provider": "Jupiter / Raydium SDK",
+            "engine": "智能多池路由拆单",
             "latency_range": "200 ms – 1000 ms",
             "latency_typical_ms": 460.0,
-            "fee_rate": "0.25% LP 池费 + 基础/优先 Gas",
+            "fee_rate": "0.25% 池费 + 网络费",
             "gas_sol": "0.00005 ~ 0.0005 SOL",
-            "slippage": "动态 AMM 冲击滑点 (随交易规模平方增长)",
+            "slippage": "流动性冲击滑点",
             "atomic_protection": False,
-            "atomic_desc": "无原子回滚 (交易广播上链即扣 Gas)",
-            "scenarios": "链上主流现货代币兑换、DEX 现货网格、Meme 中低频交易",
-            "virtual_trading": "本地 Paper Trading (抓真实 DEX 实时深度与价格模拟撮合)",
-            "pros": "去中心化无托管风险、无需许可交易任意链上资产、智能跨池拆单",
-            "cons": "容易遭遇三明治夹子 (MEV Sandwich)、公共 RPC 丢包与超时",
+            "atomic_desc": "无原子回滚（上链即扣网络费）",
+            "scenarios": "链上现货兑换、DEX网格交易",
+            "virtual_trading": "本地模拟盘（真实池深与价格模拟）",
+            "pros": "去中心化无托管风险、无需许可交易任意资产",
+            "cons": "易受三明治夹子影响、公共节点偶发延迟",
             "status": "active" if paper_broker.active_route == "ROUTE_B_DEX" else "standby"
         },
         {
             "id": "ROUTE_C_HFT",
             "tag": "路径 C",
-            "name": "链上极速直连 (HFT / Jito)",
-            "provider": "Yellowstone gRPC + Jito MEV Client",
-            "engine": "Jito MEV Bundles (原子事务包直达 Leader Slot)",
+            "name": "链上极速直连",
+            "provider": "Yellowstone gRPC + Jito MEV",
+            "engine": "原子事务包直达出块节点",
             "latency_range": "100 ms – 400 ms",
             "latency_typical_ms": 165.0,
-            "fee_rate": "0.25% LP 费 + 优先费 + Jito Tip (动态小费)",
-            "gas_sol": "0.0001 SOL Jito 验证者小费",
-            "slippage": "0.8 bps (绑定 Slot 首位成交，免疫滑点冲击)",
+            "fee_rate": "0.25% 池费 + 节点小费",
+            "gas_sol": "0.0001 SOL 验证者小费",
+            "slippage": "0.8 bps (首位出块打包)",
             "atomic_protection": True,
-            "atomic_desc": "🛡️ 亏损零损耗原子回滚：滑点不符或无利可图时，Bundle 整体失败回滚，不扣本金！",
-            "scenarios": "毫秒级抢跑、DEX 跨池套利、Meme 开盘狙击、链上清算套利、防夹保护",
-            "virtual_trading": "Solana Devnet / 本地 solana-test-validator / Yellowstone 模拟沙盒",
-            "pros": "完全免疫三明治夹子反洗劫、独占 Slot 优先打包、原子回滚零本金亏损",
-            "cons": "需支付 Jito 验证者 Tip 小费、技术门槛高 (需维护 gRPC/私有节点)",
+            "atomic_desc": "零损耗原子回滚：滑点超标或无利润时整包失败回滚，零本金损失",
+            "scenarios": "极速抢跑、跨池套利、清算套利、防夹保护",
+            "virtual_trading": "开发网 / 本地验证节点模拟沙盒",
+            "pros": "免疫三明治夹子、优先打包、零本金亏损",
+            "cons": "需支付验证者小费、技术门槛较高",
             "status": "active" if paper_broker.active_route == "ROUTE_C_HFT" else "standby"
         }
     ]
@@ -557,26 +557,26 @@ def execute_route_demo():
     telemetry = []
 
     if route == ExecutionRoute.ROUTE_A_CEX:
-        telemetry.append(f"[{ts}] ⚡ [CEX API 握手] 建立与 Binance/OKX 私有 WebSocket 订单流长连接 (SSL/TLS 0-RTT)...")
-        telemetry.append(f"[{ts}] 📥 [订单入队] 提交市价单: {side} ${amount_usd:,.2f} USD ({symbol}) @ 参考价 ${live_price:.2f}")
-        telemetry.append(f"[{ts}] ⚙️ [CLOB 内存撮合] 订单进入内存订单簿，对手盘最佳深度实时消耗，耗时 {exec_res.latency_ms:.1f} ms")
-        telemetry.append(f"[{ts}] 💰 [费率结算] Taker 费率 0.04% (-${exec_res.dex_protocol_fee_usd:.2f}) | 链上 Gas: 0 SOL (免Gas)")
-        telemetry.append(f"[{ts}] 🎯 [成交回报] 成交价: ${exec_res.execution_price:.4f} | 滑点仅 {exec_res.slippage_rate*10000:.1f} bps | 获得 {exec_res.token_amount:.4f} {symbol}")
-        telemetry.append(f"[{ts}] ✅ [状态: FILLED] 交易所内部账本实时结算完毕，无链上排队延迟。")
+        telemetry.append(f"[{ts}] [连接] 建立与交易所私有订单流长连接...")
+        telemetry.append(f"[{ts}] [下单] 提交市价单: {side} ${amount_usd:,.2f} ({symbol}) @ 参考价 ${live_price:.2f}")
+        telemetry.append(f"[{ts}] [撮合] 订单进入内存订单簿撮合，耗时 {exec_res.latency_ms:.1f} ms")
+        telemetry.append(f"[{ts}] [结算] 手续费: -${exec_res.dex_protocol_fee_usd:.2f}，网络费: 0")
+        telemetry.append(f"[{ts}] [成交] 成交价: ${exec_res.execution_price:.4f}，滑点: {exec_res.slippage_rate*10000:.1f} bps，获得 {exec_res.token_amount:.4f} {symbol}")
+        telemetry.append(f"[{ts}] [完成] 交易所内部账本结算完毕，订单全部成交")
     elif route == ExecutionRoute.ROUTE_C_HFT:
-        telemetry.append(f"[{ts}] ⚡ [Yellowstone gRPC] 直连本地 Solana 验证节点 Geyser 插件，毫秒级订阅下任 Leader 出块 Slot...")
-        telemetry.append(f"[{ts}] 📦 [Jito Bundle 组装] 构建原子事务包 (Atomic Bundle): 包含开仓指令 + Jito Tip 贿赂指令 (0.0001 SOL)")
-        telemetry.append(f"[{ts}] 🚀 [Jito Block Engine 投递] 绕过公共 Mempool 交易池，专线直投下任验证者，耗时 {exec_res.latency_ms:.1f} ms")
-        telemetry.append(f"[{ts}] 🛡️ [MEV 防夹与原子回滚校验] 检查前置三明治攻击者: 0 个 | 检查执行滑点: {exec_res.slippage_rate*10000:.1f} bps (低于 1.0 bps 阈值)")
-        telemetry.append(f"[{ts}] 💎 [Slot 顶端打包] 成功抢占 Slot 首位执行！成交价: ${exec_res.execution_price:.4f} | Jito Tip: ${exec_res.jito_tip_usd:.3f}")
-        telemetry.append(f"[{ts}] ✅ [状态: BUNDLE_LANDED] 原子事务包确认上链！零三明治损耗，原子安全回滚门禁守护就绪。")
+        telemetry.append(f"[{ts}] [连接] 直连本地验证节点插件，订阅出块 Slot...")
+        telemetry.append(f"[{ts}] [组装] 构建原子事务包（包含开仓指令与验证者小费 0.0001 SOL）")
+        telemetry.append(f"[{ts}] [投递] 绕过公共交易池直投验证者，耗时 {exec_res.latency_ms:.1f} ms")
+        telemetry.append(f"[{ts}] [校验] 防夹与回滚校验通过，滑点: {exec_res.slippage_rate*10000:.1f} bps")
+        telemetry.append(f"[{ts}] [打包] 抢占出块首位执行，成交价: ${exec_res.execution_price:.4f}，小费: ${exec_res.jito_tip_usd:.3f}")
+        telemetry.append(f"[{ts}] [完成] 原子事务包确认上链，零本金损失保护就绪")
     else:
-        telemetry.append(f"[{ts}] ⚡ [Jupiter v6 智能路由] 向 Jupiter Aggregator 查询 SOL/USDC 跨池最优流动性路径...")
-        telemetry.append(f"[{ts}] 🔀 [多池拆单执行] 智能拆单: 68% 经 Orca Whirlpool CLMM + 32% 经 Raydium CPMM")
-        telemetry.append(f"[{ts}] 📡 [Solana RPC 广播] 附加优先费 ComputeBudget (0.0008 SOL)，提交至 Solana Validator，耗时 {exec_res.latency_ms:.1f} ms")
-        telemetry.append(f"[{ts}] 🌊 [AMM 恒定乘积滑点] 受到池深流动性冲击，发生价格偏移 {exec_res.slippage_rate*10000:.1f} bps (-${exec_res.slippage_cost_usd:.2f})")
-        telemetry.append(f"[{ts}] 💵 [手续费结算] LP 协议池费 0.25% (-${exec_res.dex_protocol_fee_usd:.2f}) + 网络 Gas (-${exec_res.base_network_fee_usd+exec_res.priority_fee_usd:.2f})")
-        telemetry.append(f"[{ts}] ✅ [状态: CONFIRMED] 区块达成最终性 (Finalized)！成交价: ${exec_res.execution_price:.4f} | 获得 {exec_res.token_amount:.4f} {symbol}")
+        telemetry.append(f"[{ts}] [路由] 查询跨池最优流动性路径...")
+        telemetry.append(f"[{ts}] [拆单] 智能拆单: 多池分散执行")
+        telemetry.append(f"[{ts}] [广播] 附加优先费提交至验证节点，耗时 {exec_res.latency_ms:.1f} ms")
+        telemetry.append(f"[{ts}] [滑点] 池深流动性冲击，滑点: {exec_res.slippage_rate*10000:.1f} bps (-${exec_res.slippage_cost_usd:.2f})")
+        telemetry.append(f"[{ts}] [结算] 协议费: -${exec_res.dex_protocol_fee_usd:.2f}，网络费: -${exec_res.base_network_fee_usd+exec_res.priority_fee_usd:.2f}")
+        telemetry.append(f"[{ts}] [完成] 区块达成最终确认，成交价: ${exec_res.execution_price:.4f}，获得 {exec_res.token_amount:.4f} {symbol}")
 
     return jsonify({
         "status": "success",
