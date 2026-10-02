@@ -216,6 +216,13 @@ def run_backtest_api():
     take_profit_mult = float(req.get("take_profit_mult", 3.5))
     bars_count = int(req.get("bars_count", 2500))
 
+    # Automatic routing for custom or registered strategies
+    strat_id = req.get("strategy_id") or req.get("strategy")
+    if strat_id and strat_id not in ("zlema_supertrend", "rsi_momentum"):
+        strat_entry = strategy_manager.get_strategy(strat_id)
+        if strat_entry:
+            return backtest_custom_strategy()
+
     # Fast routing for 1m high-frequency multi-asset universe
     if timeframe_str == "1m":
         from basket_engine import basket_engine

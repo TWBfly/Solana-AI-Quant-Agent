@@ -152,9 +152,13 @@
       <!-- Strategy Selector -->
       <div class="flex items-center space-x-2">
         <span class="text-slate-400 font-medium">策略模型:</span>
-        <select id="selectStrategy" onchange="executeBacktest(1.0)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
-          <option value="zlema_supertrend">零滞后趋势突破</option>
-          <option value="rsi_momentum">动量自适应趋势</option>
+        <select id="selectStrategy" onchange="onStrategySelectorChange(this.value)" class="bg-slate-900 border border-slate-700 text-cyan-300 font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500 font-mono text-xs">
+          <option value="strat_tb10_3a" selected>TB10.3A [TBQUANT]</option>
+          <option value="builtin_zlema">ZLEMA 双通道动量策略 (内置基准) [PYTHON]</option>
+          <option value="preset_tbquant">TBQuant 经典双均线波幅策略 [TBQUANT]</option>
+          <option value="preset_mylanguage">文华财经 唐奇安通道策略 [MYLANGUAGE]</option>
+          <option value="preset_tdx">通达信 均线放量共振选股 [TDX]</option>
+          <option value="preset_tradingview">TradingView Pine 动量均线 [TRADINGVIEW]</option>
         </select>
       </div>
 
@@ -273,16 +277,23 @@
             <div id="chartActiveStrategyBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-xs shadow-inner">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
               <span class="text-slate-400 font-medium">当前策略:</span>
-              <span id="chartActiveStrategyName" class="font-bold text-white font-mono">TB10.3A</span>
+              <select id="chartStrategySelect" onchange="onStrategySelectorChange(this.value)" class="bg-slate-950 text-white font-bold font-mono text-xs cursor-pointer border border-slate-700 rounded px-1.5 py-0.5 focus:outline-none focus:border-cyan-500">
+                <option value="strat_tb10_3a" selected>TB10.3A</option>
+                <option value="builtin_zlema">ZLEMA 双通道动量策略 (内置基准)</option>
+                <option value="preset_tbquant">TBQuant 经典双均线波幅策略</option>
+                <option value="preset_mylanguage">文华财经 唐奇安通道策略</option>
+                <option value="preset_tdx">通达信 均线放量共振选股</option>
+                <option value="preset_tradingview">TradingView Pine 动量均线</option>
+              </select>
               <span id="chartActiveStrategyLang" class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">TBQUANT</span>
             </div>
 
-            <button onclick="jumpToStrategyEditor()" title="修改此策略代码与指标逻辑 (支持增删改查)" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 border border-slate-700 text-xs flex items-center gap-1 transition shadow-sm">
+            <button onclick="jumpToStrategyEditor()" id="btnChartEditStrategy" title="修改此策略代码与指标逻辑 (支持增删改查)" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 border border-slate-700 text-xs flex items-center gap-1 transition shadow-sm cursor-pointer active:scale-95">
               <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
               <span>修改策略代码</span>
             </button>
 
-            <button onclick="toggleChartFullscreen()" id="btnFullscreen" title="全屏缩放" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-cyan-600 text-slate-300 hover:text-white border border-slate-700/80 text-xs flex items-center gap-1.5 transition shadow-sm">
+            <button onclick="toggleChartFullscreen()" id="btnFullscreen" title="全屏缩放" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-cyan-600 text-slate-300 hover:text-white border border-slate-700/80 text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer">
               <i data-lucide="maximize" class="w-3.5 h-3.5" id="iconFullscreen"></i>
               <span id="textFullscreen">全屏</span>
             </button>
@@ -2230,15 +2241,28 @@
 
     async function executeBacktest(stressMult = 1.0) {
       const btn = stressMult > 1.0 ? document.getElementById("btnExec3x") : document.getElementById("btnExec1x");
-      const origText = btn.innerHTML;
-      btn.innerHTML = `<span class="animate-spin mr-1">⌛</span> 正在执行因果回测...`;
-      btn.disabled = true;
+      const origText = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.innerHTML = `<span class="animate-spin mr-1">⌛</span> 正在执行因果回测...`;
+        btn.disabled = true;
+      }
 
       try {
+        const stratSelect = document.getElementById("selectStrategy");
+        const stratVal = stratSelect ? stratSelect.value : activeBacktestedStrategyId;
+        
+        // If it's a registered custom strategy in cachedStrategiesList
+        const customStrat = cachedStrategiesList.find(s => s.id === stratVal);
+        if (customStrat) {
+          await runCustomStrategyBacktestById(customStrat.id, stressMult);
+          return;
+        }
+
         const payload = {
           token: currentToken,
           timeframe: currentTimeframe,
-          strategy: document.getElementById("selectStrategy").value,
+          strategy: stratVal,
+          strategy_id: stratVal,
           bars_count: parseInt(document.getElementById("selectBarsCount").value),
           trade_size: parseFloat(document.getElementById("selectTradeSize").value),
           stress_mult: stressMult,
@@ -2261,14 +2285,16 @@
       } catch (e) {
         alert("网络连接异常: " + e);
       } finally {
-        btn.innerHTML = origText;
-        btn.disabled = false;
+        if (btn) {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
         lucide.createIcons();
       }
     }
 
     function renderBacktestDashboard(res) {
-      // 0. Update Chart Active Strategy Indicator Badge
+      // 0. Update Chart Active Strategy Indicator Badge & Selectors
       const stratName = res.strategy_name || activeBacktestedStrategyName || "TB10.3A";
       const stratLang = res.language ? res.language.toUpperCase() : "TBQUANT";
       const nameEl = document.getElementById("chartActiveStrategyName");
@@ -2277,6 +2303,13 @@
       if (langEl) langEl.innerText = stratLang;
       activeBacktestedStrategyId = res.strategy_id || activeBacktestedStrategyId || "strat_tb10_3a";
       activeBacktestedStrategyName = stratName;
+
+      if (res.strategy_id) {
+        const topSel = document.getElementById("selectStrategy");
+        const chartSel = document.getElementById("chartStrategySelect");
+        if (topSel && topSel.value !== res.strategy_id) topSel.value = res.strategy_id;
+        if (chartSel && chartSel.value !== res.strategy_id) chartSel.value = res.strategy_id;
+      }
 
       // 1. Update KPI Top Cards
       const pnlSign = res.net_profit_usd >= 0 ? "+" : "";
@@ -3850,6 +3883,9 @@
           if (activeEditingStratId === stratId) {
             activeEditingStratId = null;
           }
+          if (activeBacktestedStrategyId === stratId) {
+            activeBacktestedStrategyId = "strat_tb10_3a";
+          }
           loadStrategiesList();
         } else {
           alert("删除失败: " + (data.message || "未知原因"));
@@ -3859,10 +3895,15 @@
       }
     }
 
+    function switchTab(tab) {
+      switchBottomTab(tab);
+    }
+
     function jumpToStrategyEditor() {
-      switchTab('strategy');
-      if (activeBacktestedStrategyId) {
-        editStrategy(activeBacktestedStrategyId);
+      switchBottomTab('strategy');
+      const targetId = activeBacktestedStrategyId || (cachedStrategiesList.length > 0 ? cachedStrategiesList[0].id : null);
+      if (targetId) {
+        editStrategy(targetId);
       } else {
         const studioHeader = document.getElementById("containerStrategyTable");
         if (studioHeader) {
@@ -3872,11 +3913,13 @@
     }
 
     function createNewStrategy() {
-      switchTab('strategy');
+      switchBottomTab('strategy');
       activeEditingStratId = null;
       document.getElementById("stratNameInput").value = "";
       document.getElementById("stratSourceCode").value = "";
       document.getElementById("stratPythonCode").value = "";
+      currentStratParams = {};
+      renderStratParams({});
       updateDetectedLanguageBadge(null);
       const badge = document.getElementById("stratCompileBadge");
       if (badge) {
@@ -3887,13 +3930,19 @@
       if (studioHeader) {
         studioHeader.scrollIntoView({ behavior: 'smooth' });
       }
-      setTimeout(() => document.getElementById("stratSourceCode").focus(), 100);
+      setTimeout(() => {
+        const srcEl = document.getElementById("stratSourceCode");
+        if (srcEl) srcEl.focus();
+      }, 100);
     }
 
     function editStrategy(stratId) {
-      const strat = cachedStrategiesList.find(s => s.id === stratId);
+      switchBottomTab('strategy');
+      let strat = cachedStrategiesList.find(s => s.id === stratId);
+      if (!strat && cachedStrategiesList.length > 0) {
+        strat = cachedStrategiesList[0];
+      }
       if (!strat) return;
-      switchTab('strategy');
       activeEditingStratId = strat.id;
       document.getElementById("stratNameInput").value = strat.name;
       document.getElementById("stratSourceCode").value = strat.source_code || "";
@@ -3912,10 +3961,120 @@
       if (studioHeader) {
         studioHeader.scrollIntoView({ behavior: 'smooth' });
       }
-      setTimeout(() => lucide.createIcons(), 50);
+      setTimeout(() => {
+        lucide.createIcons();
+        const targetInput = (strat.source_code && strat.source_code.trim()) ? document.getElementById("stratSourceCode") : document.getElementById("stratPythonCode");
+        if (targetInput) targetInput.focus();
+      }, 100);
     }
 
-    async function loadStrategiesList() {
+    function populateStrategySelectors(strategies, activeId = null) {
+      const topSel = document.getElementById("selectStrategy");
+      const chartSel = document.getElementById("chartStrategySelect");
+      if (!topSel && !chartSel) return;
+
+      const currentId = activeId || activeBacktestedStrategyId || (strategies && strategies.length > 0 ? strategies[0].id : "strat_tb10_3a");
+
+      let opts = "";
+      if (strategies && strategies.length > 0) {
+        strategies.forEach(s => {
+          const lang = (s.language || "custom").toUpperCase();
+          const isSel = s.id === currentId ? "selected" : "";
+          opts += `<option value="${s.id}" ${isSel}>${s.name} [${lang}]</option>`;
+        });
+      }
+
+      if (topSel) {
+        topSel.innerHTML = opts;
+        topSel.value = currentId;
+      }
+      if (chartSel) {
+        chartSel.innerHTML = opts;
+        chartSel.value = currentId;
+      }
+    }
+
+    async function onStrategySelectorChange(stratId) {
+      if (!stratId) return;
+      activeBacktestedStrategyId = stratId;
+      const topSel = document.getElementById("selectStrategy");
+      const chartSel = document.getElementById("chartStrategySelect");
+      if (topSel && topSel.value !== stratId) topSel.value = stratId;
+      if (chartSel && chartSel.value !== stratId) chartSel.value = stratId;
+
+      await runCustomStrategyBacktestById(stratId, 1.0);
+    }
+
+    async function runCustomStrategyBacktestById(stratId, stressMult = 1.0) {
+      const strat = cachedStrategiesList.find(s => s.id === stratId);
+      if (!strat) return;
+      activeEditingStratId = strat.id;
+      activeBacktestedStrategyId = strat.id;
+      activeBacktestedStrategyName = strat.name;
+
+      const topSel = document.getElementById("selectStrategy");
+      const chartSel = document.getElementById("chartStrategySelect");
+      if (topSel && topSel.value !== strat.id) topSel.value = strat.id;
+      if (chartSel && chartSel.value !== strat.id) chartSel.value = strat.id;
+
+      const langEl = document.getElementById("chartActiveStrategyLang");
+      if (langEl) langEl.innerText = (strat.language || "tbquant").toUpperCase();
+
+      const nameInp = document.getElementById("stratNameInput");
+      const srcInp = document.getElementById("stratSourceCode");
+      const pyInp = document.getElementById("stratPythonCode");
+      if (nameInp) nameInp.value = strat.name;
+      if (srcInp) srcInp.value = strat.source_code || "";
+      if (pyInp) pyInp.value = strat.python_code || "";
+      currentStratParams = strat.parameters || {};
+      renderStratParams(currentStratParams);
+      updateDetectedLanguageBadge(strat.language || "tbquant");
+
+      const badge = document.getElementById("stratCompileBadge");
+      if (badge) {
+        badge.innerText = `回测中: ${strat.name}`;
+        badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-cyan-950 text-cyan-400 border border-cyan-800";
+      }
+
+      const token = currentToken;
+      const tf = currentTimeframe;
+      const bars = parseInt(document.getElementById("selectBarsCount").value) || 2500;
+      const tradeSize = parseFloat(document.getElementById("selectTradeSize").value) || 1000.0;
+
+      try {
+        const res = await fetch("/api/strategy/backtest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            strategy_id: strat.id,
+            python_code: strat.python_code,
+            parameters: strat.parameters || {},
+            token: token,
+            timeframe: tf,
+            bars_count: bars,
+            stress_mult: stressMult,
+            trade_size: tradeSize
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          lastBacktestResult = data;
+          renderBacktestDashboard(data);
+          switchChartMode('candlestick');
+          if (badge) {
+            badge.innerText = `回测完成 (${data.total_trades}笔交易)`;
+            badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-950 text-emerald-400 border border-emerald-800";
+          }
+          loadStrategiesList(false);
+        } else {
+          alert("回测失败: " + (data.message || "未知原因"));
+        }
+      } catch (e) {
+        alert("回测请求异常: " + e);
+      }
+    }
+
+    async function loadStrategiesList(updateDropdowns = true) {
       try {
         const res = await fetch("/api/strategies");
         if (!res.ok) return;
@@ -3938,6 +4097,10 @@
             activeLabel.innerText = "系统默认策略 (活跃)";
             activeLabel.className = "font-bold text-cyan-400 font-mono";
           }
+        }
+
+        if (updateDropdowns) {
+          populateStrategySelectors(cachedStrategiesList, activeBacktestedStrategyId);
         }
 
         renderStrategyCardsGrid(cachedStrategiesList, activeStrat);
@@ -4050,24 +4213,11 @@
     }
 
     async function runBacktestForCard(stratId) {
-      const strat = cachedStrategiesList.find(s => s.id === stratId);
-      if (!strat) return;
-      activeEditingStratId = strat.id;
-      activeBacktestedStrategyId = strat.id;
-      activeBacktestedStrategyName = strat.name;
-
-      const nameEl = document.getElementById("chartActiveStrategyName");
-      const langEl = document.getElementById("chartActiveStrategyLang");
-      if (nameEl) nameEl.innerText = strat.name;
-      if (langEl) langEl.innerText = (strat.language || "TBQUANT").toUpperCase();
-
-      document.getElementById("stratNameInput").value = strat.name;
-      document.getElementById("stratSourceCode").value = strat.source_code || "";
-      document.getElementById("stratPythonCode").value = strat.python_code || "";
-      currentStratParams = strat.parameters || {};
-      renderStratParams(currentStratParams);
-      updateDetectedLanguageBadge(strat.language || "tbquant");
-      await backtestCurrentStrategy();
+      await runCustomStrategyBacktestById(stratId, 1.0);
+      const chartCard = document.getElementById("chartPanelContainer");
+      if (chartCard) {
+        chartCard.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   </script>
 </body>

@@ -12,7 +12,7 @@
     "status": "STANDBY",
     "is_active_paper": false,
     "created_at": "2026-10-02 16:11:34",
-    "updated_at": "2026-10-02 16:25:01",
+    "updated_at": "2026-10-02 16:38:08",
     "backtest_summary": {
       "net_profit_usd": -3.0013510602057067,
       "return_pct": -0.028050009908464547,
@@ -20,7 +20,33 @@
       "sharpe_ratio": -0.15165310380079244,
       "max_drawdown_pct": 0.7373536396251033,
       "total_trades": 9,
-      "updated_at": "2026-10-02 16:24:47"
+      "updated_at": "2026-10-02 16:37:45"
+    }
+  },
+  {
+    "id": "builtin_zlema",
+    "name": "ZLEMA 双通道动量策略 (内置基准)",
+    "language": "python",
+    "description": "系统内置基准策略: 零滞后移动均线 (ZLEMA) 动量突破，结合 SuperTrend 与动态 Chandelier 吊灯追踪止损",
+    "source_code": "# ======================================================================\n# Solana AI Quant - ZLEMA 零滞后趋势突破策略 (内置基准)\n# 核心逻辑：\n# 1. 计算快慢零滞后均线 (ZLEMA Fast 9, Slow 26) 与超趋势 SuperTrend\n# 2. 快线上穿慢线且 SuperTrend 确认看多时，产生 BUY 信号并挂 ATR 止损\n# 3. 实时执行 2.0 * ATR 灾难硬止损与 3.5 * ATR 目标止盈\n# 4. SuperTrend 翻转向下时平仓离场\n# ======================================================================\nfrom typing import Optional, Dict, Any\nimport pandas as pd\nfrom strategy import TradeSignal\nfrom strategy_base import BaseStrategy\nfrom config import StrategyConfig, SolanaFrictionConfig\n\nclass BuiltinZLEMAStrategy(BaseStrategy):\n    \"\"\"ZLEMA 双通道动量策略 (内置基准)\"\"\"\n    def __init__(self, config: StrategyConfig = None, friction_config: SolanaFrictionConfig = None, **kwargs):\n        super().__init__(config, friction_config)\n        self.strategy_name = \"ZLEMA 双通道动量策略 (内置基准)\"\n        self.fast_period = kwargs.get(\"fast_period\", 9)\n        self.slow_period = kwargs.get(\"slow_period\", 26)\n        self.atr_mult = kwargs.get(\"atr_mult\", 2.0)\n\n    def prepare_indicators(self, df: pd.DataFrame) -> pd.DataFrame:\n        return super().prepare_indicators(df)\n\n    def evaluate_bar(self, current_bar: pd.Series, current_position: Optional[Dict[str, Any]] = None, sol_price_usd: float = 140.0) -> TradeSignal:\n        price = float(current_bar['close'])\n        high = float(current_bar['high'])\n        low = float(current_bar['low'])\n        atr = float(current_bar.get('atr', price * 0.02))\n        z_fast = float(current_bar.get('zlema_fast', price))\n        z_slow = float(current_bar.get('zlema_slow', price))\n        trend_dir = int(current_bar.get('trend_dir', 1))\n        st_line = float(current_bar.get('supertrend', price))\n\n        if current_position is not None and current_position.get('size', 0) > 0:\n            entry_price = float(current_position['entry_price'])\n            hard_stop = entry_price - (self.atr_mult * atr)\n            take_profit = entry_price + (3.5 * atr)\n            if low <= hard_stop:\n                self.bars_since_last_exit = 0\n                return TradeSignal(action='SELL', price=hard_stop, reason=f'硬止损触发: {low:.2f} <= {hard_stop:.2f}')\n            if high >= take_profit:\n                self.bars_since_last_exit = 0\n                return TradeSignal(action='SELL', price=take_profit, reason=f'目标止盈达成: {high:.2f} >= {take_profit:.2f}')\n            if trend_dir == -1:\n                self.bars_since_last_exit = 0\n                return TradeSignal(action='SELL', price=price, reason=f'超趋势翻转看跌离场: {price:.2f}')\n            return TradeSignal(action='HOLD', price=price, trailing_stop=st_line, stop_loss=hard_stop, take_profit=take_profit)\n\n        self.bars_since_last_exit += 1\n        if self.bars_since_last_exit >= 3:\n            if z_fast > z_slow and trend_dir == 1:\n                stop_loss = price - (self.atr_mult * atr)\n                take_profit = price + (3.5 * atr)\n                return TradeSignal(action='BUY', price=price, stop_loss=stop_loss, take_profit=take_profit, reason='ZLEMA金叉且超趋势看多开仓')\n        return TradeSignal(action='HOLD', price=price)\n",
+    "python_code": "\"\"\"\nZLEMA 双通道动量策略 (内置基准)\n零滞后指数移动平均线 (Zero-Lag EMA) 结合动态波动率通道与 ATR 吊灯出场。\n\"\"\"\nfrom typing import Optional, Dict, Any\nimport pandas as pd\nfrom strategy import TradeSignal\nfrom strategy_base import BaseStrategy\nfrom config import StrategyConfig, SolanaFrictionConfig\n\nclass BuiltinZLEMAStrategy(BaseStrategy):\n    \"\"\"ZLEMA 双通道动量策略 (内置基准)\"\"\"\n    def __init__(self, config: StrategyConfig = None, friction_config: SolanaFrictionConfig = None, **kwargs):\n        super().__init__(config, friction_config)\n        self.strategy_name = \"ZLEMA 双通道动量策略 (内置基准)\"\n        self.fast_period = kwargs.get(\"fast_period\", 9)\n        self.slow_period = kwargs.get(\"slow_period\", 26)\n        self.atr_mult = kwargs.get(\"atr_mult\", 2.0)\n\n    def prepare_indicators(self, df: pd.DataFrame) -> pd.DataFrame:\n        return super().prepare_indicators(df)\n\n    def evaluate_bar(self, current_bar: pd.Series, current_position: Optional[Dict[str, Any]] = None, sol_price_usd: float = 140.0) -> TradeSignal:\n        price = float(current_bar['close'])\n        high = float(current_bar['high'])\n        low = float(current_bar['low'])\n        atr = float(current_bar.get('atr', price * 0.02))\n        z_fast = float(current_bar.get('zlema_fast', price))\n        z_slow = float(current_bar.get('zlema_slow', price))\n        trend_dir = int(current_bar.get('trend_dir', 1))\n        st_line = float(current_bar.get('supertrend', price))\n\n        if current_position is not None and current_position.get('size', 0) > 0:\n            entry_price = float(current_position['entry_price'])\n            hard_stop = entry_price - (self.atr_mult * atr)\n            take_profit = entry_price + (3.5 * atr)\n            if low <= hard_stop:\n                self.bars_since_last_exit = 0\n                return TradeSignal(action='SELL', price=hard_stop, reason=f'硬止损触发: {low:.2f} <= {hard_stop:.2f}')\n            if high >= take_profit:\n                self.bars_since_last_exit = 0\n                return TradeSignal(action='SELL', price=take_profit, reason=f'目标止盈达成: {high:.2f} >= {take_profit:.2f}')\n            if trend_dir == -1:\n                self.bars_since_last_exit = 0\n                return TradeSignal(action='SELL', price=price, reason=f'超趋势翻转看跌离场: {price:.2f}')\n            return TradeSignal(action='HOLD', price=price, trailing_stop=st_line, stop_loss=hard_stop, take_profit=take_profit)\n\n        self.bars_since_last_exit += 1\n        if self.bars_since_last_exit >= 3:\n            if z_fast > z_slow and trend_dir == 1:\n                stop_loss = price - (self.atr_mult * atr)\n                take_profit = price + (3.5 * atr)\n                return TradeSignal(action='BUY', price=price, stop_loss=stop_loss, take_profit=take_profit, reason='ZLEMA金叉且超趋势看多开仓')\n        return TradeSignal(action='HOLD', price=price)\n",
+    "parameters": {
+      "fast_period": 9,
+      "slow_period": 26,
+      "atr_mult": 2.0
+    },
+    "status": "STANDBY",
+    "is_active_paper": false,
+    "created_at": "2026-10-02 14:00:00",
+    "updated_at": "2026-10-02 16:30:00",
+    "backtest_summary": {
+      "net_profit_usd": -722.7322526938042,
+      "return_pct": -6.754507034521534,
+      "win_rate": 24.444444444444443,
+      "sharpe_ratio": -23.069926991276805,
+      "max_drawdown_pct": 6.841558789588959,
+      "total_trades": 90,
+      "updated_at": "2026-10-02 16:34:23"
     }
   },
   {
