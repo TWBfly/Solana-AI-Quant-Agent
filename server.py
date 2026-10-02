@@ -23,6 +23,7 @@ from factors import compute_all_factors
 from strategy_transpiler import StrategyTranspiler
 from strategy_manager import strategy_manager
 from ai_service import ai_service
+from strategy_evolution_agent import strategy_evolution_agent
 
 app = Flask(__name__, static_folder="web")
 
@@ -1032,6 +1033,110 @@ def ai_diagnose_backtest():
     try:
         reply = ai_service.call_llm(messages, temperature=0.3, max_tokens=800)
         return jsonify({"status": "success", "diagnosis": reply})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+# ==============================================================================
+# AI Strategy Evolution Agent Endpoints
+# ==============================================================================
+
+@app.route("/api/strategy/evolution/history", methods=["GET"])
+def get_strategy_evolution_history():
+    """Returns the full iteration history for a strategy."""
+    strat_id = request.args.get("strategy_id", "")
+    if not strat_id:
+        return jsonify({"status": "error", "message": "strategy_id 不能为空"}), 400
+    history = strategy_evolution_agent.load_history(strat_id)
+    return jsonify({"status": "success", "history": history})
+
+
+@app.route("/api/strategy/evolution/step", methods=["POST"])
+def run_strategy_evolution_step():
+    """Executes a single evolutionary step (Analyze -> Plan -> Refactor -> Test -> Compare)."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    target_goal = req.get("target_goal", "balanced")
+    custom_code = req.get("code")
+    token_sym = req.get("token", "SOL")
+    timeframe = req.get("timeframe", "15m")
+    bars = int(req.get("bars", 500))
+
+    if not strat_id:
+        return jsonify({"status": "error", "message": "strategy_id 不能为空"}), 400
+
+    try:
+        res = strategy_evolution_agent.execute_iteration_step(
+            strategy_id=strat_id,
+            target_goal=target_goal,
+            custom_code=custom_code,
+            token_sym=token_sym,
+            timeframe=timeframe,
+            bars=bars
+        )
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/strategy/evolution/auto_loop", methods=["POST"])
+def run_strategy_evolution_auto_loop():
+    """Runs a multi-round autonomous optimization loop."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    max_rounds = int(req.get("max_rounds", 3))
+    target_goal = req.get("target_goal", "balanced")
+    token_sym = req.get("token", "SOL")
+    timeframe = req.get("timeframe", "15m")
+    bars = int(req.get("bars", 500))
+
+    if not strat_id:
+        return jsonify({"status": "error", "message": "strategy_id 不能为空"}), 400
+
+    try:
+        res = strategy_evolution_agent.run_auto_loop(
+            strategy_id=strat_id,
+            max_rounds=max_rounds,
+            target_goal=target_goal,
+            token_sym=token_sym,
+            timeframe=timeframe,
+            bars=bars
+        )
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/strategy/evolution/freeze_base", methods=["POST"])
+def freeze_strategy_evolution_base():
+    """Freezes a specific iteration as the active Base checkpoint."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    iteration_id = req.get("iteration_id", "")
+
+    if not strat_id or not iteration_id:
+        return jsonify({"status": "error", "message": "strategy_id 与 iteration_id 不能为空"}), 400
+
+    try:
+        res = strategy_evolution_agent.freeze_base(strat_id, iteration_id)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/strategy/evolution/apply", methods=["POST"])
+def apply_strategy_evolution_code():
+    """Applies an evolved iteration's code to the main Strategy Studio."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    iteration_id = req.get("iteration_id", "")
+
+    if not strat_id or not iteration_id:
+        return jsonify({"status": "error", "message": "strategy_id 与 iteration_id 不能为空"}), 400
+
+    try:
+        res = strategy_evolution_agent.apply_to_studio(strat_id, iteration_id)
+        return jsonify(res)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 

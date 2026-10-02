@@ -14,7 +14,7 @@ from friction import SolanaFrictionModel
 @dataclass
 class TradeSignal:
     action: str                        # 'BUY', 'SELL', 'HOLD'
-    price: float                       # Current trigger price
+    price: float = 0.0                 # Current trigger price
     stop_loss: Optional[float] = None  # Dynamic initial hard stop
     trailing_stop: Optional[float] = None # Dynamic trailing chandelier stop
     take_profit: Optional[float] = None   # Target take profit level

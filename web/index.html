@@ -300,6 +300,11 @@
               <span>查看门禁诊断</span>
             </button>
 
+            <button onclick="openEvolutionModal()" id="btnChartOpenEvolution" title="AI Agent 深度分析点位并迭代演化策略" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-500/50 text-xs flex items-center gap-1 transition shadow-sm cursor-pointer active:scale-95">
+              <i data-lucide="git-branch" class="w-3.5 h-3.5 text-emerald-200"></i>
+              <span>AI 策略进化</span>
+            </button>
+
             <button onclick="jumpToStrategyEditor()" id="btnChartEditStrategy" title="修改此策略代码与指标逻辑 (支持增删改查)" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 border border-slate-700 text-xs flex items-center gap-1 transition shadow-sm cursor-pointer active:scale-95">
               <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
               <span>修改策略代码</span>
@@ -511,7 +516,7 @@
                 <span>系统设置</span>
                 <span class="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-cyan-950 text-cyan-400 border border-cyan-800">AI 引擎配置</span>
               </h3>
-              <p class="text-xs text-slate-400">支持主流 AI 大模型，默认优先加载 .env 中配置的 EvoMap</p>
+              <p class="text-xs text-slate-400">支持主流 AI 大模型，默认优先加载 .env 中配置的商汤日日新</p>
             </div>
           </div>
           <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
@@ -599,6 +604,134 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- AI Strategy Evolution & Iterative Optimization Modal -->
+    <div id="evolutionModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-5 transition-all duration-300" onclick="if(event.target === this) closeEvolutionModal()">
+      <div class="glass-panel w-full max-w-6xl max-h-[92vh] rounded-2xl border border-cyan-500/30 flex flex-col shadow-2xl shadow-cyan-950/50 overflow-hidden text-xs">
+        
+        <!-- Header -->
+        <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <i data-lucide="git-branch" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-white">AI 策略自主进化引擎</h3>
+                <span id="evoStrategyNameBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-cyan-950 text-cyan-400 border border-cyan-800">当前策略</span>
+                <span id="evoActiveBaseBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">已冻结 Base: v0</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">深度分析回测报告与K线做多做空平仓点位，列出优化 Plan 并重构更新策略源码，冻结优质成果持续演进</p>
+            </div>
+          </div>
+          <button onclick="closeEvolutionModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Target Goals & Evolution Control Toolbar -->
+        <div class="px-5 py-3 border-b border-slate-800/80 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-400 text-[11px] font-medium">优化目标:</span>
+            <div class="flex items-center gap-1.5" id="evoGoalGroup">
+              <button onclick="selectEvoGoal('balanced')" id="goalBtn_balanced" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-cyan-600 text-white border-cyan-400">综合均衡</button>
+              <button onclick="selectEvoGoal('sharpe')" id="goalBtn_sharpe" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">最大夏普</button>
+              <button onclick="selectEvoGoal('drawdown')" id="goalBtn_drawdown" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">压制回撤</button>
+              <button onclick="selectEvoGoal('win_rate')" id="goalBtn_win_rate" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">提升胜率</button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="runEvolutionStep()" id="btnEvoStep" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span>单步迭代优化</span>
+            </button>
+            <button onclick="runEvolutionAutoLoop()" id="btnEvoLoop" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition active:scale-95">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>自动多轮进化 (3轮)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Main Container -->
+        <div class="p-5 overflow-y-auto space-y-4 custom-scrollbar flex-1">
+          
+          <!-- Key Metrics Comparison Banner (Base vs Latest Evolved) -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="evoMetricsComparisonGrid">
+            <!-- Dynamically populated comparison cards -->
+          </div>
+
+          <!-- Tabs for Insights -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <button onclick="switchEvoTab('diag')" id="evoTabBtn_diag" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-950 text-cyan-400 border border-cyan-800 transition">K线点位归因</button>
+                <button onclick="switchEvoTab('plan')" id="evoTabBtn_plan" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">详细优化 Plan</button>
+                <button onclick="switchEvoTab('code')" id="evoTabBtn_code" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">演化策略源码</button>
+              </div>
+              <div id="evoIterationStatusBanner" class="text-[11px] text-slate-400 font-mono">
+                <!-- Status tag -->
+              </div>
+            </div>
+
+            <!-- Tab 1: K-line & Trade Point Diagnostics -->
+            <div id="evoTabContent_diag" class="space-y-3">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="evoDiagGrid">
+                <!-- Micro metrics -->
+              </div>
+              <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5">
+                <div class="font-semibold text-slate-300 text-xs mb-2 flex items-center gap-1.5">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>点位成交与K线走势核心痛点诊断:</span>
+                </div>
+                <ul class="space-y-1.5 text-[11px] text-slate-300" id="evoFlawsList">
+                  <!-- Flaws list -->
+                </ul>
+              </div>
+            </div>
+
+            <!-- Tab 2: Detailed Plan -->
+            <div id="evoTabContent_plan" class="hidden bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 text-[11px] leading-relaxed text-slate-300 whitespace-pre-line font-sans">
+              <div id="evoPlanText">请点击上方【单步迭代优化】生成针对当前策略点位的详细进化 Plan。</div>
+            </div>
+
+            <!-- Tab 3: Evolved Code -->
+            <div id="evoTabContent_code" class="hidden space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] text-slate-400 font-mono">继承 BaseStrategy 的 Python 源码</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="copyEvoCode()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] flex items-center gap-1">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                    <span>复制源码</span>
+                  </button>
+                  <button onclick="applyCurrentEvoCodeToStudio()" class="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-semibold flex items-center gap-1 shadow-sm">
+                    <i data-lucide="arrow-right-circle" class="w-3 h-3"></i>
+                    <span>应用到策略工坊</span>
+                  </button>
+                </div>
+              </div>
+              <textarea id="evoCodeEditor" rows="12" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-cyan-300 font-mono text-[11px] leading-relaxed focus:outline-none"></textarea>
+            </div>
+          </div>
+
+          <!-- Bottom: Multi-Version Evolution History Tree -->
+          <div class="border-t border-slate-800/80 pt-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="font-bold text-white text-xs flex items-center gap-1.5">
+                <i data-lucide="history" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span>多版本演化历程 (Evolution History)</span>
+              </div>
+              <span class="text-[10px] text-slate-500 font-mono" id="evoHistoryTotalCount">共 0 个演化版本</span>
+            </div>
+            
+            <div class="space-y-2.5 max-h-56 overflow-y-auto custom-scrollbar pr-1" id="evoHistoryList">
+              <!-- Chronological cards -->
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
 
@@ -1131,6 +1264,10 @@
             <button onclick="aiOptimizeCurrentStrategy()" id="btnAIOptimize" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition" title="使用当前 AI 引擎智能审计与代码转译">
               <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-200"></i>
               <span>AI 优化</span>
+            </button>
+            <button onclick="openEvolutionModal()" id="btnStudioOpenEvolution" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition" title="基于回测结果与K线做多做空点位深度自主进化策略">
+              <i data-lucide="git-merge" class="w-3.5 h-3.5 text-emerald-200"></i>
+              <span>AI 策略进化</span>
             </button>
             <button onclick="openSettingsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1 border border-slate-700 transition" title="配置 AI API Key">
               <i data-lucide="settings" class="w-3.5 h-3.5 text-cyan-400"></i>
@@ -4332,6 +4469,7 @@
       if (e.key === "Escape") {
         closeDiagnosisModal();
         closeSettingsModal();
+        closeEvolutionModal();
       }
     });
 
@@ -5003,6 +5141,9 @@
                 <button onclick="runBacktestForCard('${s.id}')" class="px-2 py-1 rounded bg-cyan-900/60 text-cyan-300 border border-cyan-800 hover:bg-cyan-800 text-[11px] flex items-center gap-1 transition" title="一键回测并上图">
                   <i data-lucide="line-chart" class="w-3 h-3"></i><span>回测</span>
                 </button>
+                <button onclick="openEvolutionModal('${s.id}')" class="px-2 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 text-[11px] flex items-center gap-1 transition" title="AI策略进化与迭代优化">
+                  <i data-lucide="git-merge" class="w-3 h-3"></i><span>进化</span>
+                </button>
                 <button onclick="deployCurrentStrategy('${s.id}')" class="px-2 py-1 rounded ${isActivePaper ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-800' : 'bg-purple-950 text-purple-300 border border-purple-800 hover:bg-purple-900'} text-[11px] flex items-center gap-1 transition" title="接入虚拟盘">
                   <i data-lucide="zap" class="w-3 h-3"></i><span>${isActivePaper ? '运行中' : '接入'}</span>
                 </button>
@@ -5029,6 +5170,499 @@
       const chartCard = document.getElementById("chartPanelContainer");
       if (chartCard) {
         chartCard.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // === AI Strategy Autonomous Evolution Controller ===
+    let currentEvolutionStratId = "strat_tb10_3a";
+    let currentEvolutionGoal = "balanced";
+    let currentActiveEvoTab = "diag";
+    let cachedEvolutionData = null;
+    let selectedInspectionIterId = null;
+
+    function openEvolutionModal(stratId) {
+      if (stratId) {
+        currentEvolutionStratId = stratId;
+      } else {
+        const sel = document.getElementById("stratStudioSelect");
+        if (sel && sel.value) {
+          currentEvolutionStratId = sel.value;
+        } else if (window.currentActiveBacktestedStratId) {
+          currentEvolutionStratId = window.currentActiveBacktestedStratId;
+        } else {
+          currentEvolutionStratId = "strat_tb10_3a";
+        }
+      }
+
+      const modal = document.getElementById("evolutionModal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+      lucide.createIcons();
+
+      selectedInspectionIterId = null;
+      loadEvolutionHistory(currentEvolutionStratId);
+    }
+
+    function closeEvolutionModal() {
+      const modal = document.getElementById("evolutionModal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function selectEvoGoal(goal) {
+      currentEvolutionGoal = goal;
+      const goals = ['balanced', 'sharpe', 'drawdown', 'win_rate'];
+      goals.forEach(g => {
+        const btn = document.getElementById(`goalBtn_${g}`);
+        if (!btn) return;
+        if (g === goal) {
+          btn.className = "px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-cyan-600 text-white border-cyan-400";
+        } else {
+          btn.className = "px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white";
+        }
+      });
+    }
+
+    function switchEvoTab(tab) {
+      currentActiveEvoTab = tab;
+      const tabs = ['diag', 'plan', 'code'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`evoTabBtn_${t}`);
+        const content = document.getElementById(`evoTabContent_${t}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-950 text-cyan-400 border border-cyan-800 transition";
+          } else {
+            btn.className = "px-3 py-1 rounded-lg text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition";
+          }
+        }
+        if (content) {
+          if (t === tab) {
+            content.classList.remove("hidden");
+          } else {
+            content.classList.add("hidden");
+          }
+        }
+      });
+      lucide.createIcons();
+    }
+
+    async function loadEvolutionHistory(stratId) {
+      try {
+        const res = await fetch(`/api/strategy/evolution/history?strategy_id=${encodeURIComponent(stratId)}`);
+        if (!res.ok) throw new Error("加载演化历史失败");
+        const data = await res.json();
+        cachedEvolutionData = data;
+        renderEvolutionUI(data);
+      } catch (err) {
+        console.error("loadEvolutionHistory err:", err);
+      }
+    }
+
+    function renderEvolutionUI(data) {
+      if (!data) return;
+      
+      const hObj = (data && data.history && typeof data.history === 'object' && !Array.isArray(data.history)) ? data.history : data;
+      const history = Array.isArray(hObj.iterations) ? hObj.iterations : (Array.isArray(hObj.history) ? hObj.history : (Array.isArray(data.history) ? data.history : []));
+
+      const nameBadge = document.getElementById("evoStrategyNameBadge");
+      if (nameBadge) nameBadge.textContent = hObj.strategy_name || hObj.strategy_id || currentEvolutionStratId;
+      
+      const baseBadge = document.getElementById("evoActiveBaseBadge");
+      if (baseBadge) {
+        const baseVer = (hObj.active_base_id !== undefined && hObj.active_base_id !== null) ? hObj.active_base_id : 0;
+        baseBadge.textContent = `已冻结 Base: ${baseVer}`;
+      }
+
+      const countEl = document.getElementById("evoHistoryTotalCount");
+      if (countEl) countEl.textContent = `共 ${history.length} 个演化版本`;
+
+      const baseIter = history.find(h => h.is_base) || (history.length > 0 ? history[0] : null);
+      let targetIter = null;
+      if (selectedInspectionIterId !== null) {
+        targetIter = history.find(h => h.iteration_id === selectedInspectionIterId);
+      }
+      if (!targetIter && history.length > 0) {
+        targetIter = history[history.length - 1];
+      }
+
+      renderEvoMetricsGrid(baseIter, targetIter);
+
+      const diag = targetIter ? targetIter.diagnostics : (baseIter ? baseIter.diagnostics : null);
+      renderEvoDiagnostics(diag);
+
+      const planEl = document.getElementById("evoPlanText");
+      if (planEl) {
+        if (targetIter && targetIter.plan) {
+          planEl.textContent = targetIter.plan;
+        } else {
+          planEl.textContent = "请点击上方【单步迭代优化】生成针对当前策略点位的详细进化 Plan。";
+        }
+      }
+
+      const codeEditor = document.getElementById("evoCodeEditor");
+      if (codeEditor) {
+        if (targetIter && targetIter.code) {
+          codeEditor.value = targetIter.code;
+        } else if (baseIter && baseIter.code) {
+          codeEditor.value = baseIter.code;
+        } else {
+          codeEditor.value = "# 暂无演化代码，点击【单步迭代优化】开始演化";
+        }
+      }
+
+      const banner = document.getElementById("evoIterationStatusBanner");
+      if (banner && targetIter) {
+        const isTargetBase = targetIter.is_base;
+        const fitScore = (targetIter.fitness_score || 0).toFixed(1);
+        const improveBadge = targetIter.is_improved 
+          ? `<span class="text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">超越 Base 突破</span>` 
+          : `<span class="text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800">继续演进</span>`;
+        banner.innerHTML = `查看: <span class="text-cyan-300 font-bold">${targetIter.version_tag}</span> (${targetIter.goal_label || targetIter.target_goal}) ｜ 健身度: <span class="text-white font-bold">${fitScore}</span> ｜ ${isTargetBase ? '<span class="text-emerald-300 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-700">当前 Base 基准</span>' : improveBadge}`;
+      }
+
+      renderEvoHistoryList(history, data.active_base_version);
+      lucide.createIcons();
+    }
+
+    function renderEvoMetricsGrid(baseIter, targetIter) {
+      const grid = document.getElementById("evoMetricsComparisonGrid");
+      if (!grid) return;
+
+      const baseM = (baseIter && baseIter.metrics) || {};
+      const targetM = (targetIter && targetIter.metrics) || {};
+
+      const baseFit = baseIter ? (baseIter.fitness_score || 0) : 0;
+      const targetFit = targetIter ? (targetIter.fitness_score || 0) : 0;
+
+      const items = [
+        {
+          label: "综合健身度",
+          base: baseFit.toFixed(1),
+          curr: targetFit.toFixed(1),
+          diff: (targetFit - baseFit >= 0 ? "+" : "") + (targetFit - baseFit).toFixed(1),
+          isPositive: (targetFit >= baseFit),
+          unit: "分"
+        },
+        {
+          label: "夏普比率",
+          base: (baseM.sharpe_ratio || 0).toFixed(2),
+          curr: (targetM.sharpe_ratio || 0).toFixed(2),
+          diff: ((targetM.sharpe_ratio || 0) - (baseM.sharpe_ratio || 0) >= 0 ? "+" : "") + ((targetM.sharpe_ratio || 0) - (baseM.sharpe_ratio || 0)).toFixed(2),
+          isPositive: ((targetM.sharpe_ratio || 0) >= (baseM.sharpe_ratio || 0)),
+          unit: ""
+        },
+        {
+          label: "累计净收益",
+          base: "$" + (baseM.net_profit_usd || 0).toFixed(1),
+          curr: "$" + (targetM.net_profit_usd || 0).toFixed(1),
+          diff: ((targetM.net_profit_usd || 0) - (baseM.net_profit_usd || 0) >= 0 ? "+$" : "-$") + Math.abs((targetM.net_profit_usd || 0) - (baseM.net_profit_usd || 0)).toFixed(1),
+          isPositive: ((targetM.net_profit_usd || 0) >= (baseM.net_profit_usd || 0)),
+          unit: ""
+        },
+        {
+          label: "最大回撤",
+          base: (baseM.max_drawdown_pct || 0).toFixed(1) + "%",
+          curr: (targetM.max_drawdown_pct || 0).toFixed(1) + "%",
+          diff: ((targetM.max_drawdown_pct || 0) - (baseM.max_drawdown_pct || 0) >= 0 ? "+" : "") + ((targetM.max_drawdown_pct || 0) - (baseM.max_drawdown_pct || 0)).toFixed(1) + "%",
+          isPositive: ((targetM.max_drawdown_pct || 0) <= (baseM.max_drawdown_pct || 0)),
+          unit: ""
+        },
+        {
+          label: "交易胜率",
+          base: (baseM.win_rate_pct || 0).toFixed(1) + "%",
+          curr: (targetM.win_rate_pct || 0).toFixed(1) + "%",
+          diff: ((targetM.win_rate_pct || 0) - (baseM.win_rate_pct || 0) >= 0 ? "+" : "") + ((targetM.win_rate_pct || 0) - (baseM.win_rate_pct || 0)).toFixed(1) + "%",
+          isPositive: ((targetM.win_rate_pct || 0) >= (baseM.win_rate_pct || 0)),
+          unit: ""
+        },
+        {
+          label: "盈亏比",
+          base: (baseM.profit_factor || 0).toFixed(2),
+          curr: (targetM.profit_factor || 0).toFixed(2),
+          diff: ((targetM.profit_factor || 0) - (baseM.profit_factor || 0) >= 0 ? "+" : "") + ((targetM.profit_factor || 0) - (baseM.profit_factor || 0)).toFixed(2),
+          isPositive: ((targetM.profit_factor || 0) >= (baseM.profit_factor || 0)),
+          unit: ""
+        }
+      ];
+
+      grid.innerHTML = items.map(it => {
+        const badgeCls = it.isPositive 
+          ? "text-emerald-400 bg-emerald-950/60 border-emerald-800" 
+          : "text-rose-400 bg-rose-950/60 border-rose-800";
+        const arrow = it.isPositive ? "↑" : "↓";
+        return `
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between">
+            <span class="text-[10px] text-slate-400">${it.label}</span>
+            <div class="flex items-baseline justify-between mt-1">
+              <span class="text-sm font-bold text-white font-mono">${it.curr}${it.unit}</span>
+              <span class="text-[10px] font-mono px-1 rounded border ${badgeCls}">${arrow} ${it.diff}</span>
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">Base基准: ${it.base}${it.unit}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderEvoDiagnostics(diag) {
+      const grid = document.getElementById("evoDiagGrid");
+      const flawsUl = document.getElementById("evoFlawsList");
+      if (!grid || !flawsUl) return;
+
+      if (!diag) {
+        grid.innerHTML = `<div class="col-span-4 text-slate-500 text-center py-2">暂无微观成交点位归因诊断</div>`;
+        flawsUl.innerHTML = `<li class="text-slate-500">运行演化即可自动捕获入场/出场/滑点磨损点位数据。</li>`;
+        return;
+      }
+
+      grid.innerHTML = `
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[10px] text-slate-400">假突破被套率</div>
+          <div class="text-base font-bold text-amber-400 font-mono mt-0.5">${diag.false_breakout_ratio || 0}%</div>
+          <div class="text-[9px] text-slate-500 mt-0.5">进场后迅速破位平仓比例</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[10px] text-slate-400">平均逆向浮亏 (MAE)</div>
+          <div class="text-base font-bold text-rose-400 font-mono mt-0.5">${diag.avg_mae_pct || 0}%</div>
+          <div class="text-[9px] text-slate-500 mt-0.5">持仓期间经历的最大逆向浮亏</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[10px] text-slate-400">峰值利润回吐</div>
+          <div class="text-base font-bold text-indigo-400 font-mono mt-0.5">$${diag.surrendered_profit_usd || 0}</div>
+          <div class="text-[9px] text-slate-500 mt-0.5">MFE极值未及时锁住的让渡利润</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[10px] text-slate-400">链上摩擦磨损</div>
+          <div class="text-base font-bold text-cyan-400 font-mono mt-0.5">$${diag.dex_friction_drag_usd || 0}</div>
+          <div class="text-[9px] text-slate-500 mt-0.5">DEX点位滑点 + 优先费磨损</div>
+        </div>
+      `;
+
+      const flaws = diag.top_flaws || [];
+      if (flaws.length === 0) {
+        flawsUl.innerHTML = `<li class="text-slate-400">当前点位指标表现稳定，未检测到显著异常摩擦。</li>`;
+      } else {
+        flawsUl.innerHTML = flaws.map(f => `
+          <li class="flex items-start gap-1.5 text-slate-300">
+            <span class="text-amber-400 font-bold">•</span>
+            <span>${f}</span>
+          </li>
+        `).join('');
+      }
+    }
+
+    function renderEvoHistoryList(history, activeBaseVersion) {
+      const container = document.getElementById("evoHistoryList");
+      if (!container) return;
+
+      if (!history || history.length === 0) {
+        container.innerHTML = `<div class="text-slate-500 text-center py-4 text-xs font-mono">暂无演化迭代历史记录</div>`;
+        return;
+      }
+
+      const reversed = [...history].reverse();
+      container.innerHTML = reversed.map(iter => {
+        const isBase = iter.is_base;
+        const isSelected = selectedInspectionIterId === iter.iteration_id;
+          const baseBadge = isBase
+          ? `<span class="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i><span>Base 基准</span></span>`
+          : `<button onclick="freezeEvoBase('${iter.iteration_id}')" class="text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-slate-300 hover:bg-cyan-900 hover:text-cyan-200 border border-slate-700 transition flex items-center gap-1" title="冻结为全新 Base 基准，后续迭代将在该版本上继续深入优化"><i data-lucide="snowflake" class="w-3 h-3 text-cyan-400"></i><span>冻结为 Base</span></button>`;
+
+        const selectedBorder = isSelected ? "border-cyan-500 ring-1 ring-cyan-500/40" : "border-slate-800";
+        const m = iter.metrics || {};
+        const fitScore = (iter.fitness_score || 0).toFixed(1);
+
+        return `
+          <div class="bg-slate-900/90 rounded-xl border ${selectedBorder} p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg ${isBase ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-300 border border-slate-700'} flex items-center justify-center font-bold font-mono">
+                ${iter.version_tag}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-white">${iter.version_tag}</span>
+                  <span class="text-[10px] text-slate-400 font-mono">${iter.timestamp ? iter.timestamp.slice(5, 19) : ''}</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">${iter.goal_label || iter.target_goal}</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  ${iter.improvement_summary || '迭代优化完成'}
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini Metrics Row -->
+            <div class="flex items-center gap-3 font-mono text-[11px]">
+              <div><span class="text-slate-500">得分:</span> <span class="text-white font-bold">${fitScore}</span></div>
+              <div><span class="text-slate-500">夏普:</span> <span class="text-cyan-300 font-bold">${(m.sharpe_ratio || 0).toFixed(2)}</span></div>
+              <div><span class="text-slate-500">收益:</span> <span class="${(m.net_profit_usd || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold">$${(m.net_profit_usd || 0).toFixed(1)}</span></div>
+              <div><span class="text-slate-500">回撤:</span> <span class="text-rose-400 font-bold">-${(m.max_drawdown_pct || 0).toFixed(1)}%</span></div>
+            </div>
+
+            <!-- Iteration Actions -->
+            <div class="flex items-center gap-2">
+              ${baseBadge}
+              <button onclick="inspectEvoIteration('${iter.iteration_id}')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] flex items-center gap-1 transition">
+                <i data-lucide="eye" class="w-3 h-3"></i><span>查看详情</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function inspectEvoIteration(iterId) {
+      selectedInspectionIterId = iterId;
+      if (cachedEvolutionData) {
+        renderEvolutionUI(cachedEvolutionData);
+      }
+    }
+
+    async function runEvolutionStep() {
+      const btn = document.getElementById("btnEvoStep");
+      const origHtml = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>AI 点位归因与源码演化中...</span>`;
+        lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch("/api/strategy/evolution/step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            strategy_id: currentEvolutionStratId,
+            target_goal: currentEvolutionGoal,
+            bars: 300
+          })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          alert(`演化成功！版本: ${data.iteration.version_tag}\n${data.iteration.improvement_summary}`);
+          selectedInspectionIterId = data.iteration.iteration_id;
+          await loadEvolutionHistory(currentEvolutionStratId);
+          switchEvoTab("plan");
+        } else {
+          alert("演化执行失败: " + (data.message || "未知原因"));
+        }
+      } catch (err) {
+        alert("调用演化接口异常: " + err);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    async function runEvolutionAutoLoop() {
+      if (!confirm("即将执行自动多轮进化 (3轮循环)，AI 将依次针对综合均衡、压制回撤与提升夏普进行深度点位归因和代码升级，确认开始？")) {
+        return;
+      }
+
+      const btn = document.getElementById("btnEvoLoop");
+      const origHtml = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>多轮进化循环进行中...</span>`;
+        lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch("/api/strategy/evolution/auto_loop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            strategy_id: currentEvolutionStratId,
+            rounds: 3,
+            bars: 300
+          })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          alert(`自动多轮进化完成！已执行 ${data.completed_rounds} 轮，当前已冻结最新 Base: v${data.active_base_version}`);
+          selectedInspectionIterId = null;
+          await loadEvolutionHistory(currentEvolutionStratId);
+        } else {
+          alert("多轮进化失败: " + (data.message || "未知原因"));
+        }
+      } catch (err) {
+        alert("多轮进化调用异常: " + err);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    async function freezeEvoBase(iterId) {
+      try {
+        const res = await fetch("/api/strategy/evolution/freeze_base", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            strategy_id: currentEvolutionStratId,
+            iteration_id: iterId
+          })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          alert(`已成功将版本 ${data.version_tag} 冻结为最新 Base！后续所有迭代将在该源码基础上继续深入演化。`);
+          await loadEvolutionHistory(currentEvolutionStratId);
+        } else {
+          alert("冻结 Base 失败: " + (data.message || "未知原因"));
+        }
+      } catch (err) {
+        alert("请求冻结 Base 失败: " + err);
+      }
+    }
+
+    function copyEvoCode() {
+      const codeEditor = document.getElementById("evoCodeEditor");
+      if (!codeEditor || !codeEditor.value) return;
+      navigator.clipboard.writeText(codeEditor.value).then(() => {
+        alert("演化策略 Python 源码已复制到剪贴板！");
+      }).catch(err => {
+        alert("复制失败: " + err);
+      });
+    }
+
+    async function applyCurrentEvoCodeToStudio() {
+      const codeEditor = document.getElementById("evoCodeEditor");
+      if (!codeEditor || !codeEditor.value) {
+        alert("暂无可应用的演化策略源码！");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/strategy/evolution/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            strategy_id: currentEvolutionStratId,
+            iteration_id: selectedInspectionIterId
+          })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          const pyInput = document.getElementById("stratPythonCode");
+          if (pyInput) pyInput.value = data.applied_code;
+          
+          closeEvolutionModal();
+          alert(`演化版本 ${data.version_tag} 的策略源码已成功同步到策略工坊 Python 编辑器中！`);
+
+          const studio = document.getElementById("strategyStudioSection");
+          if (studio) {
+            studio.scrollIntoView({ behavior: 'smooth' });
+          }
+          await loadCustomStrategies();
+        } else {
+          alert("应用源码失败: " + (data.message || "未知原因"));
+        }
+      } catch (err) {
+        alert("应用源码异常: " + err);
       }
     }
   </script>

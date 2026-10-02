@@ -839,7 +839,11 @@ class PineScriptGeneratedStrategy(BaseStrategy):
             raise ValueError("未在代码中找到继承自 BaseStrategy 的策略类！")
 
         kw = params or {}
-        return strat_cls(**kw)
+        import inspect
+        sig = inspect.signature(strat_cls.__init__)
+        has_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
+        valid_kw = kw if has_kwargs else {k: v for k, v in kw.items() if k in sig.parameters}
+        return strat_cls(**valid_kw)
 
 
     # =========================================================================

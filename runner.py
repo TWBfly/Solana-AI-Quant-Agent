@@ -312,9 +312,37 @@ def run_self_check():
     resumed = strategy_manager.resume_strategy(test_id)
     assert resumed["status"] == "RUNNING", "Strategy must be resumed!"
     strategy_manager.undeploy_paper()
-    print("  [Pass 6/6] 四种量化脚本 (TBQuant/文华/通达信/Pine) 语法转译、动态编译与策略生命周期管理校验通过。")
+    print("  [Pass 6/7] 四种量化脚本 (TBQuant/文华/通达信/Pine) 语法转译、动态编译与策略生命周期管理校验通过。")
 
-    print("\n✅ 所有自检断言全部通过 (All 6 checks passed successfully)!\n")
+    # Check 7: AI Strategy Evolution Agent (Point Diagnostics, Fitness, Base Freezing)
+    from strategy_evolution_agent import strategy_evolution_agent
+    dummy_trades = [
+        {"side": "BUY", "entry_price": 100.0, "exit_price": 98.0, "mae_pct": 2.5, "mfe_pct": 0.5, "hold_bars": 3, "net_pnl_usd": -25.0, "friction_usd": 3.0, "exit_reason": "STOP_LOSS"},
+        {"side": "BUY", "entry_price": 100.0, "exit_price": 108.0, "mae_pct": 0.8, "mfe_pct": 12.0, "hold_bars": 15, "net_pnl_usd": 75.0, "friction_usd": 3.0, "exit_reason": "TAKE_PROFIT"}
+    ]
+    diag = strategy_evolution_agent.analyze_trade_candle_points(sample_df, {"trades": dummy_trades})
+    assert "false_breakout_ratio" in diag, "Diagnostics must compute false breakout ratio!"
+    assert "avg_mae_pct" in diag, "Diagnostics must compute avg MAE %!"
+    assert diag["total_trades"] == 2, "Diagnostics trade count must match!"
+    fit = strategy_evolution_agent.compute_fitness({"sharpe_ratio": 1.5, "net_profit_usd": 200.0, "max_drawdown_pct": 5.0, "win_rate": 60.0, "profit_factor": 1.8}, target_goal="balanced")
+    assert fit > 0, "Fitness score must be positive for strong strategy metrics!"
+
+    test_hist = {
+        "strategy_id": "test_strat",
+        "active_base_id": "iter_0",
+        "iterations": [
+            {"iteration_id": "iter_0", "version_tag": "v0", "is_base": True, "fitness_score": 10.0, "metrics": {}},
+            {"iteration_id": "iter_1", "version_tag": "v1", "is_base": False, "fitness_score": 15.0, "metrics": {}}
+        ]
+    }
+    strategy_evolution_agent.save_history("test_strat", test_hist)
+    frozen = strategy_evolution_agent.freeze_base("test_strat", "iter_1")
+    assert frozen["active_base_id"] == "iter_1", "Base freeze must set active_base_id!"
+    loaded = strategy_evolution_agent.load_history("test_strat")
+    assert loaded["iterations"][1]["is_base"] is True, "Frozen iteration must have is_base=True!"
+    print("  [Pass 7/7] AI 策略进化引擎 (K线成交点位微观归因、多目标健身度评估、Base基准冻结与版本演化) 校验通过。")
+
+    print("\n✅ 所有自检断言全部通过 (All 7 checks passed successfully)!\n")
 
 
 def main():

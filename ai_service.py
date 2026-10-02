@@ -368,7 +368,7 @@ class AIService:
         last_err = None
         for k in keys_to_try:
             try:
-                client = OpenAI(base_url=url, api_key=k, timeout=45.0)
+                client = OpenAI(base_url=url, api_key=k, timeout=75.0)
                 resp = client.chat.completions.create(
                     model=mod,
                     messages=messages,
@@ -376,7 +376,8 @@ class AIService:
                     max_tokens=max_tokens
                 )
                 msg = resp.choices[0].message
-                return msg.content or getattr(msg, "reasoning_content", "") or ""
+                raw = msg.content or getattr(msg, "reasoning_content", "") or ""
+                return re.sub(r'<think>[\s\S]*?</think>', '', raw).strip()
             except Exception as e:
                 last_err = e
                 err_s = str(e)
@@ -388,7 +389,7 @@ class AIService:
         if is_sensenova and last_err and ("429" in str(last_err) or "RateLimit" in str(last_err)):
             for k in keys_to_try:
                 try:
-                    client = OpenAI(base_url=url, api_key=k, timeout=45.0)
+                    client = OpenAI(base_url=url, api_key=k, timeout=75.0)
                     resp = client.chat.completions.create(
                         model="glm-5.2",
                         messages=messages,
