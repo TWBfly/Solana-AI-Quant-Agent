@@ -270,9 +270,22 @@ def run_self_check():
     audit = engine.run_full_stress_audit(sample_df, sol_price=120.0)
     assert "res_1x" in audit and "res_3x" in audit, "Audit must contain 1x and 3x results!"
     assert audit["res_1x"]["total_bars"] == 200, "Bar count must match dataset!"
-    print("  [Pass 4/4] 严格因果回测引擎与 Wilson 统计置信度审计通过。")
+    print("  [Pass 4/5] 严格因果回测引擎与 Wilson 统计置信度审计通过。")
 
-    print("\n✅ 所有自检断言全部通过 (All 4 checks passed successfully)!\n")
+    # Check 5: Three Execution Pathways (CEX vs DEX vs HFT Jito)
+    from friction import ExecutionRoute
+    res_cex = f_model.simulate_execution(side="BUY", requested_price=150.0, trade_usd=1000.0, sol_price_usd=150.0, route=ExecutionRoute.ROUTE_A_CEX)
+    assert res_cex.base_network_fee_usd == 0.0, "CEX route must have 0 on-chain gas!"
+    assert res_cex.latency_ms < 50.0, "CEX route latency must be < 50ms!"
+    assert abs(res_cex.dex_protocol_fee_usd - (1000.0 * 0.0004)) < 1e-6, "CEX fee must be 0.04%!"
+
+    res_hft = f_model.simulate_execution(side="BUY", requested_price=150.0, trade_usd=1000.0, sol_price_usd=150.0, route=ExecutionRoute.ROUTE_C_HFT)
+    assert res_hft.atomic_protection is True, "HFT route must provide atomic revert protection!"
+    assert res_hft.jito_tip_usd > 0, "HFT route must include Jito tip!"
+    assert res_hft.latency_ms < 300.0, "HFT route latency must be single-slot direct!"
+    print("  [Pass 5/5] 三维交易执行路由 (CEX 极低延迟 / DEX 智能聚合 / Jito HFT 原子回滚) 校验通过。")
+
+    print("\n✅ 所有自检断言全部通过 (All 5 checks passed successfully)!\n")
 
 
 def main():

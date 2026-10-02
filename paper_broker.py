@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from config import PaperTradingConfig, SolanaFrictionConfig
-from friction import SolanaFrictionModel, ExecutionResult
+from friction import SolanaFrictionModel, ExecutionResult, ExecutionRoute
 
 
 @dataclass
@@ -27,6 +27,9 @@ class PaperPosition:
     entry_dex_fee_usd: float
     entry_slippage_usd: float
     entry_friction_usd: float
+    route: str = "ROUTE_B_DEX"
+    latency_ms: float = 460.0
+    engine_name: str = "Jupiter v6 DEX Router"
 
 
 @dataclass
@@ -47,6 +50,9 @@ class PaperTradeRecord:
     return_pct: float
     hold_bars: int
     exit_reason: str
+    route: str = "ROUTE_B_DEX"
+    latency_ms: float = 460.0
+    engine_name: str = "Jupiter v6 DEX Router"
 
 
 class PaperBroker:
@@ -65,6 +71,9 @@ class PaperBroker:
         self.stress_mult = stress_mult
         self.friction_model = SolanaFrictionModel(self.friction_cfg)
 
+        # Execution Route (ROUTE_A_CEX, ROUTE_B_DEX, ROUTE_C_HFT)
+        self.active_route: str = ExecutionRoute.ROUTE_B_DEX
+
         # Account Balances
         self.cash_usdc = self.paper_cfg.initial_cash_usdc
         self.sol_balance = self.paper_cfg.initial_sol_balance
@@ -82,6 +91,13 @@ class PaperBroker:
         self.trade_history: List[PaperTradeRecord] = []
         self.equity_curve: List[Dict[str, Any]] = []
         self.trade_counter = 0
+
+    def set_execution_route(self, route: str) -> str:
+        """Sets the active execution route."""
+        valid_routes = [ExecutionRoute.ROUTE_A_CEX, ExecutionRoute.ROUTE_B_DEX, ExecutionRoute.ROUTE_C_HFT]
+        if route in valid_routes:
+            self.active_route = route
+        return self.active_route
 
     def get_portfolio_equity(self, current_price: float, sol_price: float = 140.0) -> float:
         """Computes instantaneous Mark-to-Market (M2M) portfolio equity."""
@@ -121,10 +137,11 @@ class PaperBroker:
         trailing_stop: float,
         sol_price: float = 140.0,
         pool_liquidity: float = 1000000.0,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
+        route: Optional[str] = None
     ) -> Optional[ExecutionResult]:
         """
-        Executes a paper BUY order simulating Jupiter routing onto Solana DEX.
+        Executes a paper BUY order across selected route (CEX, DEX, or HFT).
         Deducts nominal cash, network gas fees (from SOL), DEX fees, and slippage.
         """
         if self.position is not None:
@@ -137,19 +154,23 @@ class PaperBroker:
         if trade_usd < 50.0:
             return None  # Insufficient funds
 
-        # Simulate execution with Solana friction
+        target_route = route or self.active_route
+
+        # Simulate execution with chosen route friction
         exec_res = self.friction_model.simulate_execution(
             side="BUY",
             requested_price=price,
             trade_usd=trade_usd,
             sol_price_usd=sol_price,
             pool_liquidity_usd=pool_liquidity,
-            stress_mult=self.stress_mult
+            stress_mult=self.stress_mult,
+            route=target_route
         )
 
         # Gas fee deducted from SOL balance
-        gas_sol = (exec_res.base_network_fee_usd + exec_res.priority_fee_usd + exec_res.jito_tip_usd) / sol_price
-        self.sol_balance = max(self.sol_balance - gas_sol, 0.0)
+        if exec_res.base_network_fee_usd > 0 or exec_res.priority_fee_usd > 0 or exec_res.jito_tip_usd > 0:
+            gas_sol = (exec_res.base_network_fee_usd + exec_res.priority_fee_usd + exec_res.jito_tip_usd) / sol_price
+            self.sol_balance = max(self.sol_balance - gas_sol, 0.0)
 
         # Cash balance deducted by trade nominal
         self.cash_usdc -= trade_usd
@@ -170,7 +191,10 @@ class PaperBroker:
             entry_network_fee_usd=entry_network_fee,
             entry_dex_fee_usd=exec_res.dex_protocol_fee_usd,
             entry_slippage_usd=exec_res.slippage_cost_usd,
-            entry_friction_usd=exec_res.total_friction_usd
+            entry_friction_usd=exec_res.total_friction_usd,
+            route=exec_res.route,
+            latency_ms=exec_res.latency_ms,
+            engine_name=exec_res.engine_name
         )
         return exec_res
 
@@ -181,10 +205,11 @@ class PaperBroker:
         sol_price: float = 140.0,
         pool_liquidity: float = 1000000.0,
         timestamp: Optional[datetime] = None,
-        hold_bars: int = 1
+        hold_bars: int = 1,
+        route: Optional[str] = None
     ) -> Optional[PaperTradeRecord]:
         """
-        Executes a paper SELL order (closing position) simulating Jupiter routing.
+        Executes a paper SELL order across selected route (CEX, DEX, or HFT).
         Deducts exit friction, calculates exact Net PnL, and logs to trade ledger.
         """
         if self.position is None:
@@ -192,6 +217,7 @@ class PaperBroker:
 
         pos = self.position
         nominal_exit_usd = pos.token_amount * price
+        target_route = route or pos.route or self.active_route
 
         # Simulate exit friction
         exec_res = self.friction_model.simulate_execution(
@@ -200,12 +226,14 @@ class PaperBroker:
             trade_usd=nominal_exit_usd,
             sol_price_usd=sol_price,
             pool_liquidity_usd=pool_liquidity,
-            stress_mult=self.stress_mult
+            stress_mult=self.stress_mult,
+            route=target_route
         )
 
         # Deduct gas from SOL balance
-        gas_sol = (exec_res.base_network_fee_usd + exec_res.priority_fee_usd + exec_res.jito_tip_usd) / sol_price
-        self.sol_balance = max(self.sol_balance - gas_sol, 0.0)
+        if exec_res.base_network_fee_usd > 0 or exec_res.priority_fee_usd > 0 or exec_res.jito_tip_usd > 0:
+            gas_sol = (exec_res.base_network_fee_usd + exec_res.priority_fee_usd + exec_res.jito_tip_usd) / sol_price
+            self.sol_balance = max(self.sol_balance - gas_sol, 0.0)
 
         # Net cash proceeds after DEX fee and execution slippage
         net_exit_cash = (pos.token_amount * exec_res.execution_price) - exec_res.dex_protocol_fee_usd
@@ -238,7 +266,10 @@ class PaperBroker:
             total_friction_usd=total_friction,
             return_pct=return_pct,
             hold_bars=hold_bars,
-            exit_reason=reason
+            exit_reason=reason,
+            route=exec_res.route,
+            latency_ms=exec_res.latency_ms,
+            engine_name=exec_res.engine_name
         )
 
         self.trade_history.append(record)

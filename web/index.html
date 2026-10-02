@@ -425,6 +425,64 @@
 
       </div>
 
+    <!-- Three Execution Pathways & Live Telemetry Hub Section -->
+    <div class="glass-panel rounded-2xl p-5 space-y-4 border border-cyan-500/20 glow-cyan" id="executionRoutesSection">
+      
+      <!-- Section Header -->
+      <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-cyan-500/20">
+            ⚡
+          </div>
+          <div>
+            <div class="font-bold text-white text-sm flex items-center gap-2">
+              <span>三维交易执行路由架构与实盘执行中枢 (Three Execution Pathways)</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">CEX撮合 vs DEX聚合 vs Jito-HFT</span>
+            </div>
+            <div class="text-xs text-slate-400">
+              全维度对比中心化交易所 (CEX)、链上智能聚合 (Jupiter DEX) 与极速直连 (Jito MEV Bundles)，支持一键无缝热切换与单步穿透测速
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">当前活跃路由:</span>
+          <span id="badgeActiveRouteDisplay" class="px-2.5 py-1 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-700 font-mono font-bold text-xs flex items-center gap-1.5 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span id="textActiveRouteName">路径 B：链上聚合器 (DEX)</span>
+          </span>
+          <button onclick="fetchExecutionRoutes()" title="刷新路由状态" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3 Route Cards Deck (Responsive 3 Columns) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4" id="routesCardsContainer">
+        <!-- Rendered dynamically by JS -->
+      </div>
+
+      <!-- Live Execution Telemetry Console (Terminal-style Output) -->
+      <div class="rounded-xl bg-slate-950 border border-slate-800/90 p-3.5">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2.5">
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <i data-lucide="terminal" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>实时执行遥测控制台 (Live Execution Telemetry Terminal)</span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-slate-400">
+            <span id="telemetryLatencyBadge" class="font-mono text-cyan-400">穿透延迟: -- ms</span>
+            <span class="text-slate-600">|</span>
+            <span id="telemetryStatusBadge" class="font-mono text-emerald-400">状态: STANDBY</span>
+            <button onclick="clearTelemetryLogs()" class="text-slate-500 hover:text-slate-300 transition text-[10px] ml-1">清屏</button>
+          </div>
+        </div>
+
+        <div id="telemetryLogStream" class="font-mono text-xs text-slate-300 space-y-1 max-h-48 overflow-y-auto custom-scrollbar p-1">
+          <div class="text-slate-500">// 交易执行路由已就绪。点击上方任意卡片的 [设为活跃路由] 或 [触发模拟买入 $1,000] 开始实时穿透测试...</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Trade Ledger, Universe Liquidity & Institutional Deep Quant Report Section -->
@@ -883,6 +941,7 @@
       initMainChart();
       fetchTokenStatus(currentToken);
       fetchDbStats();
+      await fetchExecutionRoutes();
       await loadInstitutionalReport();
       // Auto-run initial backtest
       executeBacktest(1.0);
@@ -2846,6 +2905,233 @@
       if (confirm("确认重置虚拟盘账户本金至初始 $10,000 USDC 与 5.0 SOL？")) {
         await fetch("/api/paper/reset", { method: "POST" });
         fetchTokenStatus(currentToken);
+      }
+    }
+
+    // === Three Execution Pathways (CEX vs DEX vs HFT) Interactive Engine ===
+    let currentExecutionRoutes = [];
+    let currentActiveRouteId = "ROUTE_B_DEX";
+
+    async function fetchExecutionRoutes() {
+      try {
+        const res = await fetch("/api/routes");
+        if (!res.ok) return;
+        const data = await res.json();
+        currentActiveRouteId = data.active_route;
+        currentExecutionRoutes = data.routes || [];
+        renderExecutionRouteCards();
+        updateActiveRouteHeaderBadge();
+      } catch (e) {
+        console.warn("fetchExecutionRoutes error:", e);
+      }
+    }
+
+    function updateActiveRouteHeaderBadge() {
+      const activeObj = currentExecutionRoutes.find(r => r.id === currentActiveRouteId);
+      const textEl = document.getElementById("textActiveRouteName");
+      if (textEl && activeObj) {
+        textEl.innerText = `${activeObj.tag}：${activeObj.name}`;
+      }
+    }
+
+    function renderExecutionRouteCards() {
+      const container = document.getElementById("routesCardsContainer");
+      if (!container) return;
+
+      container.innerHTML = currentExecutionRoutes.map(route => {
+        const isActive = route.id === currentActiveRouteId;
+        const borderStyle = isActive 
+          ? "border-cyan-400/80 bg-slate-900/90 shadow-lg shadow-cyan-500/15 ring-1 ring-cyan-400/40" 
+          : "border-slate-800 bg-slate-900/50 hover:border-slate-700";
+        
+        const activeBadge = isActive
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>活跃路由</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 border border-slate-700">就绪</span>`;
+
+        const atomicHtml = route.atomic_protection
+          ? `<div class="text-[11px] p-2 rounded-lg bg-emerald-950/60 border border-emerald-800/80 text-emerald-300">
+               <span class="font-bold flex items-center gap-1">🛡️ 亏损零损耗原子回滚 (All-or-None)</span>
+               <span class="text-[10px] text-emerald-400/90">滑点超标或套利无利时整包失败回滚，不扣除本金</span>
+             </div>`
+          : `<div class="text-[11px] p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 text-slate-400">
+               <span class="flex items-center gap-1 text-slate-400">无原子回滚保护</span>
+               <span class="text-[10px] text-slate-500">${route.id === 'ROUTE_A_CEX' ? '单边撮合成交不可撤销' : '上链即扣网络 Gas'}</span>
+             </div>`;
+
+        return `
+          <div class="rounded-xl border ${borderStyle} p-4 flex flex-col justify-between transition-all duration-200">
+            <div>
+              <!-- Card Header -->
+              <div class="flex items-start justify-between border-b border-slate-800/80 pb-2.5 mb-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-black text-white text-sm">${route.tag}: ${route.name}</span>
+                  </div>
+                  <div class="text-[11px] text-cyan-400 font-mono mt-0.5">${route.provider}</div>
+                </div>
+                ${activeBadge}
+              </div>
+
+              <!-- Metric Grid -->
+              <div class="grid grid-cols-2 gap-2 text-xs font-mono mb-3">
+                <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
+                  <div class="text-[10px] text-slate-400 font-sans">交易延迟 (Latency)</div>
+                  <div class="font-bold ${route.id === 'ROUTE_A_CEX' ? 'text-emerald-400' : (route.id === 'ROUTE_C_HFT' ? 'text-cyan-400' : 'text-amber-400')}">
+                    ⚡ ${route.latency_typical_ms} ms
+                  </div>
+                  <div class="text-[9px] text-slate-500 font-sans">${route.latency_range}</div>
+                </div>
+
+                <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
+                  <div class="text-[10px] text-slate-400 font-sans">交易费率 / Gas</div>
+                  <div class="font-bold text-slate-200">${route.fee_rate.split(' ')[0]}</div>
+                  <div class="text-[9px] text-slate-500 font-sans">${route.gas_sol}</div>
+                </div>
+
+                <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
+                  <div class="text-[10px] text-slate-400 font-sans">撮合引擎架构</div>
+                  <div class="font-medium text-purple-300 text-[11px] truncate" title="${route.engine}">${route.engine.split(' ')[0]}</div>
+                  <div class="text-[9px] text-slate-500 font-sans">滑点: ${route.slippage.split(' ')[0]}</div>
+                </div>
+
+                <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800/70">
+                  <div class="text-[10px] text-slate-400 font-sans">虚拟盘撮合支持</div>
+                  <div class="font-medium text-slate-300 text-[11px] truncate" title="${route.virtual_trading}">${route.virtual_trading.split(' ')[0]}</div>
+                  <div class="text-[9px] text-slate-500 font-sans">实时沙盒撮合</div>
+                </div>
+              </div>
+
+              <!-- Atomic Revert Guarantee Block -->
+              <div class="mb-3">
+                ${atomicHtml}
+              </div>
+
+              <!-- Best Scenarios Text -->
+              <div class="text-[11px] text-slate-400 mb-3 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
+                <span class="text-slate-300 font-semibold">适用场景: </span>
+                <span>${route.scenarios}</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons Footer -->
+            <div class="pt-2 border-t border-slate-800/80 space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="executeRouteOrder('${route.id}', 'BUY', 1000)" class="py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition shadow-sm">
+                  <span>🚀 模拟买入 $1,000</span>
+                </button>
+                <button onclick="executeRouteOrder('${route.id}', 'SELL', 1000)" class="py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition shadow-sm">
+                  <span>📉 模拟平仓 / 卖出</span>
+                </button>
+              </div>
+
+              ${isActive 
+                ? `<div class="w-full py-1 text-center text-xs font-semibold text-cyan-400 bg-cyan-950/50 rounded-lg border border-cyan-800/60">
+                     ✓ 当前全局活跃路由
+                   </div>`
+                : `<button onclick="selectRoute('${route.id}')" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-200 hover:text-white font-semibold text-xs transition border border-slate-700 hover:border-cyan-500">
+                     ⚡ 设为活跃执行路由
+                   </button>`
+              }
+            </div>
+
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    async function selectRoute(routeId) {
+      try {
+        const res = await fetch("/api/route/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ route: routeId })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentActiveRouteId = data.active_route;
+          appendTelemetryLog(`[${new Date().toLocaleTimeString()}] 🔄 全局活跃执行路由已无缝热切换为: ${routeId}`);
+          fetchExecutionRoutes();
+        }
+      } catch (e) {
+        alert("切换路由失败: " + e.message);
+      }
+    }
+
+    async function executeRouteOrder(routeId, side, amountUsd) {
+      const latBadge = document.getElementById("telemetryLatencyBadge");
+      const statBadge = document.getElementById("telemetryStatusBadge");
+      
+      if (latBadge) latBadge.innerText = "穿透测速中...";
+      if (statBadge) statBadge.innerText = "状态: EXECUTING...";
+
+      appendTelemetryLog(`[${new Date().toLocaleTimeString()}] ▶ 正在向 [${routeId}] 发起 ${side} $${amountUsd} USD 穿透模拟订单...`);
+
+      try {
+        const res = await fetch("/api/route/execute_demo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            route: routeId,
+            side: side,
+            amount_usd: amountUsd,
+            symbol: currentToken
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (latBadge) latBadge.innerText = `穿透延迟: ${data.latency_ms.toFixed(1)} ms`;
+          if (statBadge) statBadge.innerText = `状态: ${data.execution_status}`;
+
+          // Stream logs
+          if (data.telemetry_logs && data.telemetry_logs.length > 0) {
+            data.telemetry_logs.forEach(log => appendTelemetryLog(log, routeId));
+          }
+
+          // Summary log
+          const atomicTag = data.atomic_protection ? " [🛡️ 原子保本回滚就绪]" : "";
+          appendTelemetryLog(
+            `[${new Date().toLocaleTimeString()}] 📊 成交结算摘要: 成交价 $${data.execution_price.toFixed(4)} | 滑点: ${data.slippage_rate_bps.toFixed(1)} bps | 摩擦总计: $${data.total_friction_usd.toFixed(2)} (Gas: $${data.network_gas_usd.toFixed(2)}, Tip: $${data.jito_tip_usd.toFixed(3)})${atomicTag}`,
+            routeId
+          );
+
+          // Refresh live status & ticker
+          fetchTokenStatus(currentToken);
+        } else {
+          appendTelemetryLog(`[${new Date().toLocaleTimeString()}] ❌ 路由执行异常: HTTP ${res.status}`);
+        }
+      } catch (e) {
+        appendTelemetryLog(`[${new Date().toLocaleTimeString()}] ❌ 网络请求失败: ${e.message}`);
+      }
+    }
+
+    function appendTelemetryLog(text, routeId = "") {
+      const stream = document.getElementById("telemetryLogStream");
+      if (!stream) return;
+
+      let colorClass = "text-slate-300";
+      if (text.includes("✅") || text.includes("FILLED") || text.includes("CONFIRMED") || text.includes("BUNDLE_LANDED")) {
+        colorClass = "text-emerald-400 font-bold";
+      } else if (text.includes("🛡️") || text.includes("原子")) {
+        colorClass = "text-amber-300 font-semibold";
+      } else if (text.includes("❌")) {
+        colorClass = "text-rose-400 font-bold";
+      } else if (text.includes("⚡") || text.includes("CLOB") || text.includes("gRPC")) {
+        colorClass = "text-cyan-300";
+      }
+
+      const logRow = document.createElement("div");
+      logRow.className = `leading-relaxed ${colorClass}`;
+      logRow.innerText = text;
+      stream.appendChild(logRow);
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    function clearTelemetryLogs() {
+      const stream = document.getElementById("telemetryLogStream");
+      if (stream) {
+        stream.innerHTML = `<div class="text-slate-500">// 实时控制台已清空。就绪监听新的订单穿透...</div>`;
       }
     }
   </script>
