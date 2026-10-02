@@ -1339,6 +1339,10 @@
                   <i data-lucide="save" class="w-3.5 h-3.5 text-cyan-400"></i>
                   <span>保存策略</span>
                 </button>
+                <button onclick="rollbackCurrentStrategy()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-800 font-medium text-xs flex items-center gap-1.5 transition" title="一键还原为官方原始基准源码">
+                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-rose-400"></i>
+                  <span>还原官方基准</span>
+                </button>
                 <button onclick="deployCurrentStrategy()" class="px-3 py-1.5 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700 font-medium text-xs flex items-center gap-1.5 transition">
                   <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-400"></i>
                   <span>接入虚拟盘</span>
@@ -4307,6 +4311,36 @@
         }
       } catch (e) {
         alert("保存请求异常: " + e);
+      }
+    }
+
+    async function rollbackCurrentStrategy() {
+      const stratId = activeEditingStratId || document.getElementById("stratStudioSelect")?.value;
+      if (!stratId) {
+        alert("请先在上方下拉框中选择需要还原的策略！");
+        return;
+      }
+      if (!confirm("确认将当前策略还原为官方初始基准源码？这会放弃当前所有未保存或演化覆盖的修改。")) {
+        return;
+      }
+      try {
+        const res = await fetch("/api/strategy/rollback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ strategy_id: stratId })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          alert(`策略 [${data.strategy.name}] 已成功还原为官方原始基准源码！`);
+          document.getElementById("stratPythonCode").value = data.strategy.python_code || "";
+          document.getElementById("stratSourceCode").value = data.strategy.source_code || "";
+          await loadCustomStrategies();
+          await runCustomStrategyBacktestById(stratId, 1.0);
+        } else {
+          alert("还原失败: " + (data.message || "无可用历史基线"));
+        }
+      } catch (e) {
+        alert("还原异常: " + e);
       }
     }
 

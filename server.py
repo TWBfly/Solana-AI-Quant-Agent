@@ -750,6 +750,19 @@ def save_strategy():
         return jsonify({"status": "error", "message": str(e)}), 400
 
 
+@app.route("/api/strategy/rollback", methods=["POST"])
+def rollback_strategy():
+    """Rolls back an edited strategy to its original authoring/benchmark code."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    if not strat_id:
+        return jsonify({"status": "error", "message": "strategy_id 不能为空"}), 400
+    rolled = strategy_manager.rollback_to_original(strat_id)
+    if rolled:
+        return jsonify({"status": "success", "strategy": rolled})
+    return jsonify({"status": "error", "message": "未找到可还原的官方基准版本"}), 400
+
+
 @app.route("/api/strategy/backtest", methods=["POST"])
 def backtest_custom_strategy():
     """

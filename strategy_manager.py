@@ -126,12 +126,19 @@ class StrategyManager:
                 break
 
         if existing:
+            if "original_python_code" not in existing and existing.get("python_code"):
+                existing["original_python_code"] = existing.get("python_code")
+                existing["original_source_code"] = existing.get("source_code")
             existing["name"] = name
             existing["language"] = lang
             existing["source_code"] = source_code
             existing["python_code"] = python_code
             existing["parameters"] = params
             existing["updated_at"] = now_str
+            if "original_python_code" in data:
+                existing["original_python_code"] = data["original_python_code"]
+            if "original_source_code" in data:
+                existing["original_source_code"] = data["original_source_code"]
             if "status" in data:
                 existing["status"] = data["status"]
             if "is_active_paper" in data:
@@ -163,6 +170,22 @@ class StrategyManager:
             self._active_strategy_instance = None
 
         return result
+
+    def rollback_to_original(self, strat_id: str) -> Optional[Dict[str, Any]]:
+        """Rolls back an edited strategy to its original benchmark source code."""
+        strategies = self._read_file()
+        for s in strategies:
+            if s.get("id") == strat_id:
+                orig_py = s.get("original_python_code")
+                if orig_py:
+                    s["python_code"] = orig_py
+                    s["source_code"] = s.get("original_source_code", orig_py)
+                    s["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self._write_file(strategies)
+                    if self._active_strategy_id == strat_id:
+                        self._active_strategy_instance = None
+                    return s
+        return None
 
     def delete_strategy(self, strat_id: str) -> bool:
         """Deletes a strategy by ID."""
