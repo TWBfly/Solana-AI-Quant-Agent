@@ -268,7 +268,20 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-2">
+          <!-- Active Backtest Strategy Indicator & Quick Edit Jump -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <div id="chartActiveStrategyBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-xs shadow-inner">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span class="text-slate-400 font-medium">当前策略:</span>
+              <span id="chartActiveStrategyName" class="font-bold text-white font-mono">TB10.3A</span>
+              <span id="chartActiveStrategyLang" class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">TBQUANT</span>
+            </div>
+
+            <button onclick="jumpToStrategyEditor()" title="修改此策略代码与指标逻辑 (支持增删改查)" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 border border-slate-700 text-xs flex items-center gap-1 transition shadow-sm">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              <span>修改策略代码</span>
+            </button>
+
             <button onclick="toggleChartFullscreen()" id="btnFullscreen" title="全屏缩放" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-cyan-600 text-slate-300 hover:text-white border border-slate-700/80 text-xs flex items-center gap-1.5 transition shadow-sm">
               <i data-lucide="maximize" class="w-3.5 h-3.5" id="iconFullscreen"></i>
               <span id="textFullscreen">全屏</span>
@@ -939,6 +952,10 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
+            <button onclick="createNewStrategy()" class="px-3 py-1.5 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700 font-medium text-xs flex items-center gap-1.5 transition" title="新建空白策略 (支持增删改查)">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-purple-300"></i>
+              <span>新建策略</span>
+            </button>
             <!-- Hidden file input for uploading txt, md, py, flm, etc. -->
             <input type="file" id="stratFileInput" accept=".txt,.md,.py,.c,.cpp,.flm,text/*" class="hidden" onchange="handleStratFileUpload(event)">
             <button onclick="document.getElementById('stratFileInput').click()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
@@ -1088,6 +1105,8 @@
     let currentFilter = "all";
     let lastBacktestResult = null;
     let mainChartInstance = null;
+    let activeBacktestedStrategyId = "strat_tb10_3a";
+    let activeBacktestedStrategyName = "TB10.3A";
 
     // Available Tokens Preset (Loaded dynamically & fallback preset)
     let AVAILABLE_TOKENS = [
@@ -2056,10 +2075,10 @@
 
     function getGridConfigs(M) {
       const configs = [];
-      const mainHeight = M === 1 ? 65 : (M === 2 ? 52 : (M === 3 ? 42 : (M === 4 ? 36 : 30)));
-      configs.push({ top: "3%", height: `${mainHeight}%` });
+      const mainHeight = M === 1 ? 62 : (M === 2 ? 50 : (M === 3 ? 40 : (M === 4 ? 34 : 28)));
+      configs.push({ top: "7%", height: `${mainHeight}%` });
       
-      const remainTop = 3 + mainHeight + 2;
+      const remainTop = 7 + mainHeight + 2;
       const remainSpace = 91 - remainTop;
       const gap = 2;
       const subH = (remainSpace - (M - 1) * gap) / M;
@@ -2249,6 +2268,16 @@
     }
 
     function renderBacktestDashboard(res) {
+      // 0. Update Chart Active Strategy Indicator Badge
+      const stratName = res.strategy_name || activeBacktestedStrategyName || "TB10.3A";
+      const stratLang = res.language ? res.language.toUpperCase() : "TBQUANT";
+      const nameEl = document.getElementById("chartActiveStrategyName");
+      const langEl = document.getElementById("chartActiveStrategyLang");
+      if (nameEl) nameEl.innerText = stratName;
+      if (langEl) langEl.innerText = stratLang;
+      activeBacktestedStrategyId = res.strategy_id || activeBacktestedStrategyId || "strat_tb10_3a";
+      activeBacktestedStrategyName = stratName;
+
       // 1. Update KPI Top Cards
       const pnlSign = res.net_profit_usd >= 0 ? "+" : "";
       const pnlColor = res.net_profit_usd >= 0 ? "text-emerald-400" : "text-rose-400";
@@ -2908,6 +2937,22 @@
             return tip;
           }
         },
+        title: {
+          text: `标的: ${currentToken} (${currentTimeframe})   |   回测策略: ${res.strategy_name || activeBacktestedStrategyName || 'TB10.3A'}`,
+          subtext: "提示: 指标/策略代码完全支持在线增、删、改、查并可实时编译回测",
+          left: "3%",
+          top: 6,
+          textStyle: {
+            color: "#38bdf8",
+            fontSize: 12,
+            fontWeight: "bold",
+            fontFamily: "monospace"
+          },
+          subtextStyle: {
+            color: "#64748b",
+            fontSize: 10
+          }
+        },
         axisPointer: { link: [{ xAxisIndex: "all" }] },
         grid: grids,
         xAxis: xAxes,
@@ -2929,6 +2974,12 @@
 
       const option = {
         backgroundColor: "transparent",
+        title: {
+          text: `资金曲线   |   回测策略: ${res.strategy_name || activeBacktestedStrategyName || 'TB10.3A'}`,
+          left: "3%",
+          top: "2%",
+          textStyle: { color: "#38bdf8", fontSize: 12, fontWeight: "bold", fontFamily: "monospace" }
+        },
         tooltip: {
           trigger: "axis",
           backgroundColor: "rgba(15, 23, 42, 0.95)",
@@ -2938,7 +2989,8 @@
         legend: {
           data: ["策略净收益", "基准持有"],
           textStyle: { color: "#94a3b8" },
-          top: "2%"
+          top: "2%",
+          right: "4%"
         },
         grid: { left: "3%", right: "3%", bottom: "10%", top: "12%", containLabel: true },
         xAxis: {
@@ -2989,6 +3041,12 @@
 
       const option = {
         backgroundColor: "transparent",
+        title: {
+          text: `水下动态回撤   |   回测策略: ${res.strategy_name || activeBacktestedStrategyName || 'TB10.3A'}`,
+          left: "3%",
+          top: "2%",
+          textStyle: { color: "#f87171", fontSize: 12, fontWeight: "bold", fontFamily: "monospace" }
+        },
         tooltip: {
           trigger: "axis",
           formatter: params => `${params[0].axisValue}<br/>动态盯市回撤: <b>${params[0].data.toFixed(2)}%</b>`,
@@ -3607,6 +3665,14 @@
       const token = currentToken;
       const tf = currentTimeframe;
       
+      const nameInput = document.getElementById("stratNameInput");
+      const currentName = nameInput ? nameInput.value.trim() : "";
+      if (currentName) {
+        activeBacktestedStrategyName = currentName;
+      }
+      const nameEl = document.getElementById("chartActiveStrategyName");
+      if (nameEl && activeBacktestedStrategyName) nameEl.innerText = activeBacktestedStrategyName;
+
       const badge = document.getElementById("stratCompileBadge");
       if (badge) {
         badge.innerText = "回测撮合中...";
@@ -3793,9 +3859,41 @@
       }
     }
 
+    function jumpToStrategyEditor() {
+      switchTab('strategy');
+      if (activeBacktestedStrategyId) {
+        editStrategy(activeBacktestedStrategyId);
+      } else {
+        const studioHeader = document.getElementById("containerStrategyTable");
+        if (studioHeader) {
+          studioHeader.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+
+    function createNewStrategy() {
+      switchTab('strategy');
+      activeEditingStratId = null;
+      document.getElementById("stratNameInput").value = "";
+      document.getElementById("stratSourceCode").value = "";
+      document.getElementById("stratPythonCode").value = "";
+      updateDetectedLanguageBadge(null);
+      const badge = document.getElementById("stratCompileBadge");
+      if (badge) {
+        badge.innerText = "新建策略";
+        badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-purple-950 text-purple-300 border border-purple-800";
+      }
+      const studioHeader = document.getElementById("containerStrategyTable");
+      if (studioHeader) {
+        studioHeader.scrollIntoView({ behavior: 'smooth' });
+      }
+      setTimeout(() => document.getElementById("stratSourceCode").focus(), 100);
+    }
+
     function editStrategy(stratId) {
       const strat = cachedStrategiesList.find(s => s.id === stratId);
       if (!strat) return;
+      switchTab('strategy');
       activeEditingStratId = strat.id;
       document.getElementById("stratNameInput").value = strat.name;
       document.getElementById("stratSourceCode").value = strat.source_code || "";
@@ -3806,7 +3904,7 @@
       
       const badge = document.getElementById("stratCompileBadge");
       if (badge) {
-        badge.innerText = "已载入就绪";
+        badge.innerText = `正在编辑: ${strat.name}`;
         badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-cyan-950 text-cyan-400 border border-cyan-800";
       }
       
@@ -3955,6 +4053,14 @@
       const strat = cachedStrategiesList.find(s => s.id === stratId);
       if (!strat) return;
       activeEditingStratId = strat.id;
+      activeBacktestedStrategyId = strat.id;
+      activeBacktestedStrategyName = strat.name;
+
+      const nameEl = document.getElementById("chartActiveStrategyName");
+      const langEl = document.getElementById("chartActiveStrategyLang");
+      if (nameEl) nameEl.innerText = strat.name;
+      if (langEl) langEl.innerText = (strat.language || "TBQUANT").toUpperCase();
+
       document.getElementById("stratNameInput").value = strat.name;
       document.getElementById("stratSourceCode").value = strat.source_code || "";
       document.getElementById("stratPythonCode").value = strat.python_code || "";

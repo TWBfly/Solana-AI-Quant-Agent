@@ -285,6 +285,10 @@ def run_backtest_api():
         })
 
     return jsonify({
+        "status": "success",
+        "strategy_name": "ZLEMA 双通道动量策略 (内置基准)",
+        "strategy_id": "builtin_zlema",
+        "language": "python",
         "token": token_sym,
         "timeframe": timeframe_str,
         "stress_mult": stress_mult,
@@ -828,8 +832,22 @@ def backtest_custom_strategy():
         }
         strategy_manager.update_backtest_summary(strat_id, summary)
 
+    # Determine strategy name and language
+    strat_name = getattr(strat_instance, "strategy_name", None)
+    strat_lang = "tbquant"
+    if strat_id:
+        existing = strategy_manager.get_strategy(strat_id)
+        if existing:
+            strat_name = strat_name or existing.get("name")
+            strat_lang = existing.get("language", "tbquant")
+    if not strat_name:
+        strat_name = "自定义量化策略"
+
     return jsonify({
         "status": "success",
+        "strategy_name": strat_name,
+        "strategy_id": strat_id or "custom_temp",
+        "language": strat_lang,
         "token": token_sym,
         "timeframe": timeframe_str,
         "stress_mult": stress_mult,
