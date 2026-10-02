@@ -209,7 +209,7 @@ class StrategyEvolutionAgent:
             "top_flaws": top_flaws
         }
 
-    def compute_fitness(self, metrics: Dict[str, Any], target_goal: str = "balanced") -> float:
+    def compute_fitness(self, metrics: Dict[str, Any], target_goal: str = "balanced", custom_goal: str = "") -> float:
         """
         Institutional Composite Fitness Function with Goal-Specific Weighting.
         """
@@ -225,10 +225,20 @@ class StrategyEvolutionAgent:
 
         if target_goal == "sharpe":
             score = (sharpe * 4.0) + (ret * 0.3) - (mdd * 1.5) + (win_rate * 0.1) + (pf * 1.5)
+        elif target_goal == "profit_factor":
+            score = (pf * 4.5) + (win_rate * 0.2) + (sharpe * 2.0) - (mdd * 1.5) + (ret * 0.3)
         elif target_goal == "drawdown":
             score = (sharpe * 1.8) + (ret * 0.2) - (mdd * 3.5) + (win_rate * 0.2) + (pf * 1.0)
         elif target_goal == "win_rate":
             score = (sharpe * 1.8) + (ret * 0.3) - (mdd * 1.5) + (win_rate * 0.4) + (pf * 1.2)
+        elif target_goal == "custom" and custom_goal:
+            cg = custom_goal.lower()
+            pf_w = 3.8 if ("盈亏比" in cg or "赔率" in cg or "盈亏" in cg) else 1.2
+            win_w = 0.35 if ("胜率" in cg or "准确" in cg or "确定性" in cg) else 0.15
+            mdd_w = 3.2 if ("回撤" in cg or "防守" in cg or "风控" in cg or "低回撤" in cg) else 1.8
+            robust_mult = 1.25 if ("鲁棒" in cg or "稳健" in cg or "均衡" in cg or "抗噪" in cg) else 1.0
+            sharpe_w = 2.8 if "夏普" in cg else 2.0
+            score = ((sharpe * sharpe_w) + (ret * 0.3) - (mdd * mdd_w) + (win_rate * win_w) + (pf * pf_w)) * robust_mult
         else: # balanced
             score = (sharpe * 2.5) + (ret * 0.4) - (mdd * 1.8) + (win_rate * 0.15) + (pf * 1.2)
 
@@ -240,18 +250,21 @@ class StrategyEvolutionAgent:
         current_code: str,
         backtest_result: Dict[str, Any],
         diagnostics: Dict[str, Any],
-        target_goal: str = "balanced"
+        target_goal: str = "balanced",
+        custom_goal: str = ""
     ) -> Dict[str, Any]:
         """
         Invokes LLM to construct a comprehensive, multi-dimensional optimization plan.
         """
         goal_prompts = {
             "balanced": "全维度综合平衡优化（在稳健提升夏普与胜率的同时严控最大回撤与交易摩擦）",
-            "sharpe": "最大化夏普比率与盈亏比（精细化趋势跟踪，让奔跑利润最大化）",
+            "sharpe": "最大化夏普比率（精细化趋势跟踪，让奔跑利润最大化）",
+            "profit_factor": "最大化盈亏比（提升单笔盈利空间，以非对称期望值覆盖试错成本，实现高盈亏比非对称收益）",
             "drawdown": "极限压制最大回撤与下行风险（收紧保护性止损，严格过滤震荡假突破）",
-            "win_rate": "提升交易胜率与信号确定性（多因子共振进场，提高入场安全边际）"
+            "win_rate": "提升交易胜率与信号确定性（多因子共振进场，提高入场安全边际）",
+            "custom": f"用户自定义目标: {custom_goal}" if custom_goal else "胜率与盈亏比均衡，鲁棒性强"
         }
-        goal_desc = goal_prompts.get(target_goal, goal_prompts["balanced"])
+        goal_desc = f"用户自定义战略目标: {custom_goal}" if (target_goal == "custom" and custom_goal) else goal_prompts.get(target_goal, goal_prompts["balanced"])
 
         metrics_summary = {
             "净收益率": f"{backtest_result.get('return_pct', 0.0):.2f}%",
@@ -333,16 +346,29 @@ class StrategyEvolutionAgent:
         code = re.sub(r'^\s*(?:import\s+(?:gm|vnpy|tqsdk|ctp|rqalpha|backtrader)[^\n]*|from\s+(?:gm|vnpy|tqsdk|ctp|rqalpha|backtrader)[^\n]*)', '', code, flags=re.MULTILINE)
         return code
 
-    def _generate_deterministic_evolution(self, base_code: str, target_goal: str = "balanced") -> str:
+    def _generate_deterministic_evolution(self, base_code: str, target_goal: str = "balanced", custom_goal: str = "") -> str:
         """
         Deterministic algorithmic optimization fallback when LLM output syntax is invalid.
         Injects ATR volatility trailing stop and volume expansion filters into BaseStrategy.
         """
+        tp_mult = "4.5"
+        sl_mult = "1.8"
+        cg = custom_goal.lower()
+        if target_goal == "profit_factor" or ("盈亏比" in cg or "赔率" in cg):
+            tp_mult = "5.2"
+            sl_mult = "1.6"
+        elif target_goal == "drawdown" or ("回撤" in cg or "防守" in cg):
+            tp_mult = "3.8"
+            sl_mult = "1.4"
+        elif target_goal == "win_rate" or ("胜率" in cg):
+            tp_mult = "3.2"
+            sl_mult = "1.8"
+
         if "tb_fast_ma" in base_code or "Evolved" in base_code:
             evolved = base_code.replace("self.fast_ma_len = 40", "self.fast_ma_len = 35")
             evolved = evolved.replace("self.slow_ma_len = 120", "self.slow_ma_len = 110")
-            evolved = evolved.replace("self.stop_loss_mult = 2.0", "self.stop_loss_mult = 1.8")
-            evolved = evolved.replace("self.take_profit_mult = 4.0", "self.take_profit_mult = 4.5")
+            evolved = evolved.replace("self.stop_loss_mult = 2.0", f"self.stop_loss_mult = {sl_mult}")
+            evolved = evolved.replace("self.take_profit_mult = 4.0", f"self.take_profit_mult = {tp_mult}")
             if evolved != base_code:
                 return evolved
 
@@ -423,7 +449,8 @@ class EvolvedAlphaStrategy(BaseStrategy):
         strategy_name: str,
         current_code: str,
         plan_text: str,
-        target_goal: str = "balanced"
+        target_goal: str = "balanced",
+        custom_goal: str = ""
     ) -> str:
         """
         Uses LLM to rewrite and enhance strategy Python code inheriting BaseStrategy.
@@ -438,7 +465,9 @@ class EvolvedAlphaStrategy(BaseStrategy):
             "5. 严禁输出任何思考草稿或解析废话，只输出完整可执行的 Python 代码，包裹在 ```python ... ``` 中！"
         )
 
+        goal_note = f"【战略导向】: 用户自定义目标 [{custom_goal}]" if (target_goal == "custom" and custom_goal) else f"【战略导向】: 目标为 [{target_goal}]"
         user_prompt = f"""【策略名称】: {strategy_name}
+{goal_note}
 【优化 Plan 与指导方案】:
 {plan_text}
 
@@ -481,6 +510,7 @@ class EvolvedAlphaStrategy(BaseStrategy):
         self,
         strategy_id: str,
         target_goal: str = "balanced",
+        custom_goal: str = "",
         custom_code: Optional[str] = None,
         token_sym: str = "SOL",
         timeframe: str = "15m",
@@ -534,10 +564,13 @@ class EvolvedAlphaStrategy(BaseStrategy):
                     "iteration_id": "iter_0",
                     "version_tag": "v0 (初始基线)",
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "target_goal": target_goal,
+                    "custom_goal": custom_goal,
+                    "goal_label": "初始基准",
                     "is_base": True,
                     "python_code": base_code,
                     "metrics": base_metrics,
-                    "fitness_score": self.compute_fitness(base_metrics),
+                    "fitness_score": self.compute_fitness(base_metrics, target_goal=target_goal, custom_goal=custom_goal),
                     "plan": "原始策略初始基线，待进行多维度 AI 进化演化。",
                     "diagnostics": base_diag,
                     "improvement_summary": "初始基准版本"
@@ -559,7 +592,8 @@ class EvolvedAlphaStrategy(BaseStrategy):
             current_code=active_base["python_code"],
             backtest_result=base_result,
             diagnostics=diagnostics,
-            target_goal=target_goal
+            target_goal=target_goal,
+            custom_goal=custom_goal
         )
 
         # Step 3: Evolve Code
@@ -567,7 +601,8 @@ class EvolvedAlphaStrategy(BaseStrategy):
             strategy_name=strat_name,
             current_code=active_base["python_code"],
             plan_text=plan_info["plan_text"],
-            target_goal=target_goal
+            target_goal=target_goal,
+            custom_goal=custom_goal
         )
 
         # Step 4: Compile & Test with multi-tier resilience
@@ -588,7 +623,7 @@ class EvolvedAlphaStrategy(BaseStrategy):
                 evolved_inst = StrategyTranspiler.compile_strategy_instance(evolved_code)
             except Exception as e2:
                 print(f"[EvolutionAgent] 智能修复后仍报错 ({e2})，启用确定性增强演化算法")
-                evolved_code = self._generate_deterministic_evolution(active_base["python_code"], target_goal)
+                evolved_code = self._generate_deterministic_evolution(active_base["python_code"], target_goal, custom_goal)
                 evolved_inst = StrategyTranspiler.compile_strategy_instance(evolved_code)
 
         # Step 5: Backtest Evolved Code
@@ -604,9 +639,9 @@ class EvolvedAlphaStrategy(BaseStrategy):
             "total_friction_usd": new_result["total_friction_usd"]
         }
 
-        # Step 6: Fitness Evaluation
-        old_fitness = self.compute_fitness(active_base["metrics"])
-        new_fitness = self.compute_fitness(new_metrics)
+        # Step 6: Fitness Evaluation (Goal-Aware)
+        old_fitness = self.compute_fitness(active_base["metrics"], target_goal=target_goal, custom_goal=custom_goal)
+        new_fitness = self.compute_fitness(new_metrics, target_goal=target_goal, custom_goal=custom_goal)
         is_improved = new_fitness > old_fitness
 
         iter_idx = len(history.get("iterations", []))
@@ -617,8 +652,13 @@ class EvolvedAlphaStrategy(BaseStrategy):
         ret_diff = new_metrics["return_pct"] - active_base["metrics"]["return_pct"]
         sharpe_diff = new_metrics["sharpe_ratio"] - active_base["metrics"]["sharpe_ratio"]
         mdd_diff = new_metrics["max_drawdown_pct"] - active_base["metrics"]["max_drawdown_pct"]
+        pf_diff = new_metrics["profit_factor"] - active_base["metrics"]["profit_factor"]
+        win_diff = new_metrics["win_rate"] - active_base["metrics"]["win_rate"]
 
         summary_parts = []
+        if target_goal == "profit_factor" and pf_diff != 0:
+            sign = "+" if pf_diff > 0 else ""
+            summary_parts.append(f"盈亏比 {active_base['metrics']['profit_factor']:.2f}➔{new_metrics['profit_factor']:.2f} ({sign}{pf_diff:.2f})")
         if sharpe_diff != 0:
             sign = "+" if sharpe_diff > 0 else ""
             summary_parts.append(f"夏普 {active_base['metrics']['sharpe_ratio']:.2f}➔{new_metrics['sharpe_ratio']:.2f} ({sign}{sharpe_diff:.2f})")
@@ -628,8 +668,21 @@ class EvolvedAlphaStrategy(BaseStrategy):
         if mdd_diff != 0:
             sign = "+" if mdd_diff > 0 else ""
             summary_parts.append(f"回撤 {active_base['metrics']['max_drawdown_pct']:.1f}%➔{new_metrics['max_drawdown_pct']:.1f}% ({sign}{mdd_diff:.1f}%)")
+        if win_diff != 0 and target_goal in ("win_rate", "custom"):
+            sign = "+" if win_diff > 0 else ""
+            summary_parts.append(f"胜率 {active_base['metrics']['win_rate']:.1f}%➔{new_metrics['win_rate']:.1f}% ({sign}{win_diff:.1f}%)")
 
         improvement_summary = ", ".join(summary_parts) if summary_parts else "与基线持平"
+
+        goal_labels = {
+            "balanced": "综合均衡",
+            "sharpe": "最大夏普",
+            "profit_factor": "最大盈亏比",
+            "drawdown": "压制回撤",
+            "win_rate": "提升胜率",
+            "custom": f"自定义: {custom_goal}" if custom_goal else "自定义目标"
+        }
+        goal_label = goal_labels.get(target_goal, "综合均衡")
 
         # Create iteration record
         iter_record = {
@@ -637,6 +690,8 @@ class EvolvedAlphaStrategy(BaseStrategy):
             "version_tag": version_tag,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "target_goal": target_goal,
+            "custom_goal": custom_goal,
+            "goal_label": goal_label,
             "is_base": False,
             "is_improved": is_improved,
             "python_code": evolved_code,
@@ -677,6 +732,7 @@ class EvolvedAlphaStrategy(BaseStrategy):
         strategy_id: str,
         max_rounds: int = 3,
         target_goal: str = "balanced",
+        custom_goal: str = "",
         token_sym: str = "SOL",
         timeframe: str = "15m",
         bars: int = 500
@@ -689,13 +745,19 @@ class EvolvedAlphaStrategy(BaseStrategy):
         improvements_count = 0
         logs = []
 
-        goals_cycle = [target_goal, "drawdown", "sharpe", "balanced"]
+        if target_goal == "custom":
+            goals_cycle = ["custom"] * max_rounds
+        elif target_goal == "profit_factor":
+            goals_cycle = ["profit_factor", "sharpe", "balanced"]
+        else:
+            goals_cycle = [target_goal, "profit_factor", "drawdown", "sharpe", "balanced"]
 
         for r in range(max_rounds):
             current_goal = goals_cycle[r % len(goals_cycle)]
             step_res = self.execute_iteration_step(
                 strategy_id=strategy_id,
                 target_goal=current_goal,
+                custom_goal=custom_goal,
                 token_sym=token_sym,
                 timeframe=timeframe,
                 bars=bars
@@ -706,6 +768,7 @@ class EvolvedAlphaStrategy(BaseStrategy):
                 "round": r + 1,
                 "version_tag": it["version_tag"],
                 "goal": current_goal,
+                "goal_label": it.get("goal_label", current_goal),
                 "is_improved": step_res["is_improved"],
                 "summary": it["improvement_summary"]
             })

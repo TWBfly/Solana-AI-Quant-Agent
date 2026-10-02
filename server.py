@@ -1070,6 +1070,7 @@ def run_strategy_evolution_step():
     req = request.get_json() or {}
     strat_id = req.get("strategy_id", "")
     target_goal = req.get("target_goal", "balanced")
+    custom_goal = req.get("custom_goal", "").strip()
     custom_code = req.get("code")
     token_sym = req.get("token", "SOL")
     timeframe = req.get("timeframe", "15m")
@@ -1082,6 +1083,7 @@ def run_strategy_evolution_step():
         res = strategy_evolution_agent.execute_iteration_step(
             strategy_id=strat_id,
             target_goal=target_goal,
+            custom_goal=custom_goal,
             custom_code=custom_code,
             token_sym=token_sym,
             timeframe=timeframe,
@@ -1097,8 +1099,9 @@ def run_strategy_evolution_auto_loop():
     """Runs a multi-round autonomous optimization loop."""
     req = request.get_json() or {}
     strat_id = req.get("strategy_id", "")
-    max_rounds = int(req.get("max_rounds", 3))
+    max_rounds = int(req.get("max_rounds", req.get("rounds", 3)))
     target_goal = req.get("target_goal", "balanced")
+    custom_goal = req.get("custom_goal", "").strip()
     token_sym = req.get("token", "SOL")
     timeframe = req.get("timeframe", "15m")
     bars = int(req.get("bars", 500))
@@ -1111,6 +1114,7 @@ def run_strategy_evolution_auto_loop():
             strategy_id=strat_id,
             max_rounds=max_rounds,
             target_goal=target_goal,
+            custom_goal=custom_goal,
             token_sym=token_sym,
             timeframe=timeframe,
             bars=bars

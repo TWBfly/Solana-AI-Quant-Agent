@@ -632,25 +632,48 @@
         </div>
 
         <!-- Target Goals & Evolution Control Toolbar -->
-        <div class="px-5 py-3 border-b border-slate-800/80 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <span class="text-slate-400 text-[11px] font-medium">优化目标:</span>
-            <div class="flex items-center gap-1.5" id="evoGoalGroup">
-              <button onclick="selectEvoGoal('balanced')" id="goalBtn_balanced" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-cyan-600 text-white border-cyan-400">综合均衡</button>
-              <button onclick="selectEvoGoal('sharpe')" id="goalBtn_sharpe" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">最大夏普</button>
-              <button onclick="selectEvoGoal('drawdown')" id="goalBtn_drawdown" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">压制回撤</button>
-              <button onclick="selectEvoGoal('win_rate')" id="goalBtn_win_rate" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">提升胜率</button>
+        <div class="px-5 py-2.5 border-b border-slate-800/80 bg-slate-900/60 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-slate-400 text-[11px] font-medium">优化目标:</span>
+              <div class="flex items-center gap-1.5 flex-wrap" id="evoGoalGroup">
+                <button onclick="selectEvoGoal('balanced')" id="goalBtn_balanced" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-cyan-600 text-white border-cyan-400">综合均衡</button>
+                <button onclick="selectEvoGoal('profit_factor')" id="goalBtn_profit_factor" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">最大盈亏比</button>
+                <button onclick="selectEvoGoal('sharpe')" id="goalBtn_sharpe" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">最大夏普</button>
+                <button onclick="selectEvoGoal('drawdown')" id="goalBtn_drawdown" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">压制回撤</button>
+                <button onclick="selectEvoGoal('win_rate')" id="goalBtn_win_rate" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white">提升胜率</button>
+                <button onclick="selectEvoGoal('custom')" id="goalBtn_custom" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white flex items-center gap-1">
+                  <i data-lucide="sparkles" class="w-3 h-3 text-amber-400"></i>
+                  <span>自定义</span>
+                </button>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="runEvolutionStep()" id="btnEvoStep" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span>单步迭代优化</span>
+              </button>
+              <button onclick="runEvolutionAutoLoop()" id="btnEvoLoop" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition active:scale-95">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>自动多轮进化 (3轮)</span>
+              </button>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <button onclick="runEvolutionStep()" id="btnEvoStep" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95">
-              <i data-lucide="play" class="w-3.5 h-3.5"></i>
-              <span>单步迭代优化</span>
-            </button>
-            <button onclick="runEvolutionAutoLoop()" id="btnEvoLoop" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition active:scale-95">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>自动多轮进化 (3轮)</span>
-            </button>
+          <!-- Custom Goal Input Bar -->
+          <div id="evoCustomGoalContainer" class="hidden items-center gap-2 pt-2 border-t border-slate-800/60">
+            <span class="text-amber-400 text-[11px] font-medium flex items-center gap-1 shrink-0">
+              <i data-lucide="sliders" class="w-3 h-3"></i> 自定义目标:
+            </span>
+            <div class="relative flex-1">
+              <input type="text" id="evoCustomGoalInput" onfocus="selectEvoGoal('custom')" placeholder="输入您的优化目标，例如：胜率和盈亏比均衡，鲁棒性强..." value="胜率和盈亏比均衡，鲁棒性强" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 pr-14 transition font-mono">
+              <button onclick="clearCustomGoalInput()" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 hover:text-slate-300">清空</button>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
+              <span class="text-[10px] text-slate-500">快速推荐:</span>
+              <button onclick="setCustomGoalPreset('胜率和盈亏比均衡，鲁棒性强')" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 hover:text-amber-300 hover:bg-slate-700 border border-slate-700 transition">胜率与盈亏比均衡</button>
+              <button onclick="setCustomGoalPreset('非对称高盈亏比，严格过滤假突破')" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 hover:text-amber-300 hover:bg-slate-700 border border-slate-700 transition">高盈亏比防假突破</button>
+              <button onclick="setCustomGoalPreset('低回撤稳健防御，多指标共振高确定性')" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 hover:text-amber-300 hover:bg-slate-700 border border-slate-700 transition">低回撤稳健防御</button>
+            </div>
           </div>
         </div>
 
@@ -5244,16 +5267,49 @@
 
     function selectEvoGoal(goal) {
       currentEvolutionGoal = goal;
-      const goals = ['balanced', 'sharpe', 'drawdown', 'win_rate'];
+      const goals = ['balanced', 'profit_factor', 'sharpe', 'drawdown', 'win_rate', 'custom'];
       goals.forEach(g => {
         const btn = document.getElementById(`goalBtn_${g}`);
         if (!btn) return;
         if (g === goal) {
-          btn.className = "px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-cyan-600 text-white border-cyan-400";
+          if (g === 'custom') {
+            btn.className = "px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-amber-600 text-white border-amber-400 flex items-center gap-1 shadow-sm shadow-amber-600/30";
+          } else {
+            btn.className = "px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-cyan-600 text-white border-cyan-400";
+          }
         } else {
-          btn.className = "px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white";
+          btn.className = "px-2.5 py-1 rounded-lg border text-[11px] font-medium transition bg-slate-900 text-slate-400 border-slate-700 hover:text-white" + (g === 'custom' ? " flex items-center gap-1" : "");
         }
       });
+
+      const customContainer = document.getElementById("evoCustomGoalContainer");
+      if (customContainer) {
+        if (goal === 'custom') {
+          customContainer.classList.remove("hidden");
+          customContainer.classList.add("flex");
+          const input = document.getElementById("evoCustomGoalInput");
+          if (input) input.focus();
+        } else {
+          customContainer.classList.add("hidden");
+          customContainer.classList.remove("flex");
+        }
+      }
+    }
+
+    function setCustomGoalPreset(presetText) {
+      const input = document.getElementById("evoCustomGoalInput");
+      if (input) {
+        input.value = presetText;
+      }
+      selectEvoGoal('custom');
+    }
+
+    function clearCustomGoalInput() {
+      const input = document.getElementById("evoCustomGoalInput");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
     }
 
     function switchEvoTab(tab) {
@@ -5559,6 +5615,8 @@
         lucide.createIcons();
       }
 
+      const customGoalVal = (document.getElementById("evoCustomGoalInput") ? document.getElementById("evoCustomGoalInput").value : "").trim();
+
       try {
         const res = await fetch("/api/strategy/evolution/step", {
           method: "POST",
@@ -5566,12 +5624,13 @@
           body: JSON.stringify({
             strategy_id: currentEvolutionStratId,
             target_goal: currentEvolutionGoal,
+            custom_goal: customGoalVal,
             bars: 300
           })
         });
         const data = await res.json();
         if (data.status === "success") {
-          alert(`演化成功！版本: ${data.iteration.version_tag}\n${data.iteration.improvement_summary}`);
+          alert(`演化成功！版本: ${data.iteration.version_tag}\n目标: ${data.iteration.goal_label || data.iteration.target_goal}\n${data.iteration.improvement_summary}`);
           selectedInspectionIterId = data.iteration.iteration_id;
           await loadEvolutionHistory(currentEvolutionStratId);
           switchEvoTab("plan");
@@ -5590,7 +5649,12 @@
     }
 
     async function runEvolutionAutoLoop() {
-      if (!confirm("即将执行自动多轮进化 (3轮循环)，AI 将依次针对综合均衡、压制回撤与提升夏普进行深度点位归因和代码升级，确认开始？")) {
+      const customGoalVal = (document.getElementById("evoCustomGoalInput") ? document.getElementById("evoCustomGoalInput").value : "").trim();
+      const goalDesc = currentEvolutionGoal === 'custom' 
+        ? `自定义目标: [${customGoalVal || '胜率与盈亏比均衡'}]`
+        : (currentEvolutionGoal === 'profit_factor' ? '最大盈亏比' : (currentEvolutionGoal === 'sharpe' ? '最大夏普' : (currentEvolutionGoal === 'drawdown' ? '压制回撤' : (currentEvolutionGoal === 'win_rate' ? '提升胜率' : '综合均衡'))));
+
+      if (!confirm(`即将执行自动多轮进化 (3轮循环)，AI 将以【${goalDesc}】为主要战略导向，进行深度点位归因和代码升级，确认开始？`)) {
         return;
       }
 
@@ -5608,13 +5672,16 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             strategy_id: currentEvolutionStratId,
-            rounds: 3,
+            max_rounds: 3,
+            target_goal: currentEvolutionGoal,
+            custom_goal: customGoalVal,
             bars: 300
           })
         });
         const data = await res.json();
         if (data.status === "success") {
-          alert(`自动多轮进化完成！已执行 ${data.completed_rounds} 轮，当前已冻结最新 Base: v${data.active_base_version}`);
+          const activeBaseVer = data.active_base ? data.active_base.version_tag : "最新";
+          alert(`自动多轮进化完成！已执行 ${data.rounds_executed} 轮，有效提升 ${data.improvements_count} 次，当前已冻结最新 Base: ${activeBaseVer}`);
           selectedInspectionIterId = null;
           await loadEvolutionHistory(currentEvolutionStratId);
         } else {
