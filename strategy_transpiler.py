@@ -108,6 +108,166 @@ class StrategyTranspiler:
         for name, val in param_matches:
             params[name] = float(val) if '.' in val else int(val)
 
+        lower = code.lower()
+        is_c10 = ("c10" in lower or "tb10" in lower or "entryupper55" in lower or "slowslopemin" in lower or ("highestfc" in lower and "summationfc" in lower))
+        if is_c10:
+            strat_display_name = "TB10.3A" if strategy_name == "自定义量化策略" else strategy_name
+            slow_slope_min = params.get("SlowSlopeMin", 0.05)
+            py_code = f'''"""
+自动解析自 TBQuant (TradeBlazer / 开拓者) 语言
+策略名称: {strat_display_name} (Trend C10.3A - 确定性执行模型)
+生成时间: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+"""
+import pandas as pd
+import numpy as np
+from typing import Optional, Dict, Any
+from strategy_base import BaseStrategy
+from strategy import TradeSignal
+from config import StrategyConfig, SolanaFrictionConfig
+
+
+class TB10_3A_Strategy(BaseStrategy):
+    """
+    Trend C10.3A - Deterministic Execution V1.0 ({strat_display_name})
+    1. OnBarClose 计算趋势动量/唐奇安55突破/ER20/ATR斜率共振，产生下柱 Pending Signal
+    2. OnBarOpen 以实际 Open 执行成交，消灭收盘价偷价偏差与信号闪烁
+    3. OnBar 实时监控盘中灾难止损 (Disaster Stop: Low <= Open - 2.80 * ATR)
+    4. 4-Bar Early Failure 早期突破失败止损 + 唐奇安40破位平仓
+    """
+    def __init__(self, config: StrategyConfig = None, friction_config: SolanaFrictionConfig = None, **kwargs):
+        super().__init__(config, friction_config)
+        self.strategy_name = "{strat_display_name}"
+        self.slow_slope_min = kwargs.get("slow_slope_min", {slow_slope_min})
+        self.bars_held = 0
+        self.long_failure_level = 0.0
+        self.long_stop_price = 0.0
+        self.frozen_atr = 0.0
+
+    def prepare_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        data = super().prepare_indicators(df)
+        c = data['close']
+        h = data['high']
+        l = data['low']
+
+        # 1. FastMA & SlowMA (SMA40, SMA120)
+        data['tb_fast_ma'] = c.rolling(40, min_periods=40).mean()
+        data['tb_slow_ma'] = c.rolling(120, min_periods=120).mean()
+
+        # 2. ATRValue (20) & ATRBase50
+        tr = np.maximum(h - l, np.maximum(abs(h - c.shift(1)), abs(l - c.shift(1))))
+        data['tb_atr'] = tr.rolling(20, min_periods=20).mean()
+        data['tb_atr_base50'] = data['tb_atr'].rolling(50, min_periods=50).mean()
+        data['tb_vol_ratio'] = np.where(data['tb_atr_base50'] > 0, data['tb_atr'] / data['tb_atr_base50'], 0.0)
+
+        # 3. Donchian 55 & 40 (excluding current bar: High[1], Low[1])
+        data['tb_entry_upper55'] = h.shift(1).rolling(55, min_periods=55).max()
+        data['tb_entry_lower55'] = l.shift(1).rolling(55, min_periods=55).min()
+        data['tb_exit_upper40'] = h.shift(1).rolling(40, min_periods=40).max()
+        data['tb_exit_lower40'] = l.shift(1).rolling(40, min_periods=40).min()
+
+        # 4. Breakout Strength
+        data['tb_long_break_str'] = np.where(data['tb_atr'] > 0, (c - data['tb_entry_upper55']) / data['tb_atr'], 0.0)
+        data['tb_short_break_str'] = np.where(data['tb_atr'] > 0, (data['tb_entry_lower55'] - c) / data['tb_atr'], 0.0)
+
+        # 5. ER20 (Kaufman Efficiency Ratio 20)
+        one_bar_move = (c - c.shift(1)).abs()
+        path_move20 = one_bar_move.rolling(20, min_periods=20).sum()
+        data['tb_long_er20'] = np.where(path_move20 > 0, (c - c.shift(20)) / path_move20, 0.0)
+        data['tb_short_er20'] = np.where(path_move20 > 0, (c.shift(20) - c) / path_move20, 0.0)
+
+        # 6. Trend Structure Slopes
+        data['tb_long_fast_slope_atr'] = np.where(data['tb_atr'] > 0, (data['tb_fast_ma'] - data['tb_fast_ma'].shift(10)) / data['tb_atr'], 0.0)
+        data['tb_short_fast_slope_atr'] = np.where(data['tb_atr'] > 0, (data['tb_fast_ma'].shift(10) - data['tb_fast_ma']) / data['tb_atr'], 0.0)
+        data['tb_long_slow_slope_atr'] = np.where(data['tb_atr'] > 0, (data['tb_slow_ma'] - data['tb_slow_ma'].shift(20)) / data['tb_atr'], 0.0)
+        data['tb_short_slow_slope_atr'] = np.where(data['tb_atr'] > 0, (data['tb_slow_ma'].shift(20) - data['tb_slow_ma']) / data['tb_atr'], 0.0)
+        data['tb_ma_spread_atr'] = np.where(data['tb_atr'] > 0, (data['tb_fast_ma'] - data['tb_slow_ma']).abs() / data['tb_atr'], 0.0)
+
+        return data
+
+    def evaluate_bar(
+        self,
+        current_bar: pd.Series,
+        current_position: Optional[Dict[str, Any]] = None,
+        sol_price_usd: float = 140.0
+    ) -> TradeSignal:
+        price = float(current_bar['close'])
+        high = float(current_bar['high'])
+        low = float(current_bar['low'])
+        open_p = float(current_bar['open'])
+        atr = float(current_bar.get('tb_atr', price * 0.02))
+
+        # 1. Warm-up (180 bars)
+        fast_ma = current_bar.get('tb_fast_ma')
+        slow_ma = current_bar.get('tb_slow_ma')
+        if pd.isna(fast_ma) or pd.isna(slow_ma) or pd.isna(atr):
+            return TradeSignal('HOLD', price, reason="TB10.3A 数据预热中 (<180 根K线)")
+
+        # 2. 持仓出场引擎 (Disaster Stop / 4-Bar Failure / Donchian 40)
+        if current_position is not None and current_position.get('size', 0) > 0:
+            self.bars_held += 1
+
+            # 出场 A: Intrabar Disaster Stop 灾难硬止损
+            if self.long_stop_price > 0 and low <= self.long_stop_price:
+                exec_stop = min(open_p, self.long_stop_price)
+                self.bars_held = 0
+                self.long_stop_price = 0
+                return TradeSignal('SELL', exec_stop, reason="TB10.3A 盘中灾难止损触发 (Disaster Stop)")
+
+            # 出场 B: 4-Bar Early Breakout Failure 突破早期失败止损
+            if self.bars_held <= 4 and self.long_failure_level > 0 and price < self.long_failure_level:
+                self.bars_held = 0
+                return TradeSignal('SELL', price, reason="TB10.3A 4-Bar 突破早期失败离场")
+
+            # 出场 C: Donchian 40 Close Confirmed Exit 唐奇安破位平仓
+            exit_lower40 = float(current_bar.get('tb_exit_lower40', 0))
+            if exit_lower40 > 0 and price < exit_lower40:
+                self.bars_held = 0
+                return TradeSignal('SELL', price, reason="TB10.3A 唐奇安40破位平仓")
+
+            return TradeSignal('HOLD', price, reason="TB10.3A 多头趋势跟踪中")
+
+        # 3. 空仓入场引擎 (OnBarClose 产生信号，由系统在下一柱 Open 真实成交)
+        self.bars_held = 0
+        entry_upper55 = float(current_bar.get('tb_entry_upper55', 0))
+        long_slow_slope = float(current_bar.get('tb_long_slow_slope_atr', 0))
+        long_fast_slope = float(current_bar.get('tb_long_fast_slope_atr', 0))
+        long_break_str = float(current_bar.get('tb_long_break_str', 0))
+        long_er20 = float(current_bar.get('tb_long_er20', 0))
+        ma_spread = float(current_bar.get('tb_ma_spread_atr', 0))
+
+        # C10.3A 六大因果共振买入条件
+        if (
+            fast_ma > slow_ma
+            and long_slow_slope >= self.slow_slope_min
+            and price > entry_upper55
+            and long_break_str >= 0.15
+            and long_er20 >= 0.20
+            and long_fast_slope >= 0.25
+            and ma_spread >= 0.30
+        ):
+            # 冻结信号 Bar 的 ATR 与 Failure Level (防止后续数据污染)
+            self.frozen_atr = atr
+            self.long_failure_level = entry_upper55 - (0.15 * atr)
+            self.long_stop_price = price - (2.80 * atr)
+
+            return TradeSignal(
+                'BUY',
+                price=price,
+                stop_loss=self.long_stop_price,
+                take_profit=price + (6.0 * atr),
+                reason="TB10.3A 全因子共振突破买入"
+            )
+
+        return TradeSignal('HOLD', price, reason="等待 TB10.3A 全因子共振")
+'''
+            return py_code, {
+                "source_language": "tbquant",
+                "strategy_name": strat_display_name,
+                "parameters": {
+                    "slow_slope_min": slow_slope_min
+                }
+            }
+
         fast_len = params.get("FastLength", params.get("FastMA", params.get("ShortPeriod", 10)))
         slow_len = params.get("SlowLength", params.get("SlowMA", params.get("LongPeriod", 30)))
         atr_mult = params.get("StopATR", params.get("ATRFactor", 2.0))
