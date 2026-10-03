@@ -1343,25 +1343,9 @@
               <i data-lucide="upload" class="w-3.5 h-3.5 text-cyan-400"></i>
               <span>上传文件</span>
             </button>
-            <button onclick="loadTemplateForCurrentLang()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
-              <span>载入示例</span>
-            </button>
             <button onclick="parseCurrentStrategy()" class="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition">
               <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
               <span>解析转 Python</span>
-            </button>
-            <button onclick="aiOptimizeCurrentStrategy()" id="btnAIOptimize" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition" title="使用当前 AI 引擎智能审计与代码转译">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-200"></i>
-              <span>AI 优化</span>
-            </button>
-            <button onclick="openEvolutionModal()" id="btnStudioOpenEvolution" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition" title="基于回测结果与K线做多做空点位深度自主进化策略">
-              <i data-lucide="git-merge" class="w-3.5 h-3.5 text-emerald-200"></i>
-              <span>AI 策略进化</span>
-            </button>
-            <button onclick="openSettingsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1 border border-slate-700 transition" title="配置 AI API Key">
-              <i data-lucide="settings" class="w-3.5 h-3.5 text-cyan-400"></i>
-              <span>AI设置</span>
             </button>
           </div>
         </div>
@@ -1382,10 +1366,6 @@
                 </span>
               </div>
               <div class="flex items-center gap-2">
-                <button onclick="loadQuickExample()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition" title="载入并自动识别示例代码">
-                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
-                  <span>载入示例</span>
-                </button>
                 <button onclick="clearStratInput()" class="text-slate-500 hover:text-slate-300 text-xs transition">清空</button>
               </div>
             </div>
@@ -5187,7 +5167,7 @@
       const grid = document.getElementById("strategyCardsGrid");
       if (!grid) return;
       if (!strategies || strategies.length === 0) {
-        grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 text-xs">暂无策略，点击上方【载入示例】或【上传文件】添加策略</div>';
+        grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 text-xs">暂无策略，点击上方【新建策略】或【上传文件】添加策略</div>';
         return;
       }
 
