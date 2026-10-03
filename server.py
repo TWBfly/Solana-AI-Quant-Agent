@@ -8,6 +8,7 @@ Provides full frontend-backend decoupled API endpoints for:
 
 import os
 import json
+import gzip
 import argparse
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
@@ -48,6 +49,29 @@ def _downsample_curve(points, max_points=1200):
     downsampled = [points[int(i * step)] for i in range(max_points - 1)]
     downsampled.append(points[-1])
     return downsampled
+
+
+@app.after_request
+def compress_response(response):
+    """Transparently compresses JSON and text responses using Python stdlib gzip."""
+    if (response.status_code < 200 or response.status_code >= 300 or
+        response.direct_passthrough or 'Content-Encoding' in response.headers):
+        return response
+
+    accept_encoding = request.headers.get('Accept-Encoding', '')
+    if 'gzip' not in accept_encoding.lower():
+        return response
+
+    data = response.get_data()
+    if len(data) < 1000:
+        return response
+
+    compressed_data = gzip.compress(data, compresslevel=6)
+    response.set_data(compressed_data)
+    response.headers['Content-Encoding'] = 'gzip'
+    response.headers['Content-Length'] = len(compressed_data)
+    response.headers['Vary'] = 'Accept-Encoding'
+    return response
 
 
 @app.route("/")
