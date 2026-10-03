@@ -2800,12 +2800,22 @@
           body: JSON.stringify(payload)
         });
 
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          alert(text.includes("no tunnel") || text.includes("<h1")
+            ? "公共网络隧道正在重新连接，请稍等 3 秒后重试。"
+            : "回测计算异常: " + (text.slice(0, 100) || `HTTP ${res.status}`));
+          return;
+        }
+
         if (res.ok) {
-          lastBacktestResult = await res.json();
+          lastBacktestResult = data;
           renderBacktestDashboard(lastBacktestResult);
         } else {
-          const errText = await res.text().catch(() => "");
-          alert("回测计算异常: " + (errText || ("HTTP " + res.status)));
+          alert("回测计算异常: " + (data.message || ("HTTP " + res.status)));
         }
       } catch (e) {
         alert("网络连接异常: " + e);
@@ -4323,7 +4333,16 @@
             stress_mult: 1.0
           })
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          alert(text.includes("no tunnel") || text.includes("<h1")
+            ? "公共网络隧道正在重新连接，请稍等 3 秒后重试。"
+            : "回测计算异常: " + (text.slice(0, 100) || `HTTP ${res.status}`));
+          return;
+        }
         if (res.ok && data.status === "success") {
           lastBacktestResult = data;
           renderBacktestDashboard(data);
@@ -5111,7 +5130,16 @@
             trade_size: tradeSize
           })
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          alert(text.includes("no tunnel") || text.includes("<h1")
+            ? "公共网络隧道正在重新连接，请稍等 3 秒后重试。"
+            : "回测计算异常: " + (text.slice(0, 100) || `HTTP ${res.status}`));
+          return;
+        }
         if (res.ok && data.status === "success") {
           lastBacktestResult = data;
           renderBacktestDashboard(data);
