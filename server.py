@@ -40,6 +40,16 @@ agent = SolanaTrendAgent(strat_cfg, frict_cfg)
 live_buffer_df = HistoricalMarketFeed.generate_solana_market_data(bars_count=60, start_price=140.0)
 
 
+def _downsample_curve(points, max_points=1200):
+    """Compresses massive time-series points to prevent multi-megabyte JSON transfer timeouts."""
+    if not points or len(points) <= max_points:
+        return points
+    step = len(points) / max_points
+    downsampled = [points[int(i * step)] for i in range(max_points - 1)]
+    downsampled.append(points[-1])
+    return downsampled
+
+
 @app.route("/")
 def index():
     """Serves the single-page frontend application."""
@@ -330,11 +340,11 @@ def run_backtest_api():
         "wilson_ci_high": result["wilson_ci_high"],
         "wilson_ci_span": result["wilson_ci_span"],
         "reliability": result["reliability"],
-        "ohlcv_bars": result["ohlcv_bars"],
+        "ohlcv_bars": result["ohlcv_bars"][-2500:] if len(result["ohlcv_bars"]) > 2500 else result["ohlcv_bars"],
         "chart_markers": result["chart_markers"],
-        "strategy_indicators": result.get("strategy_indicators", []),
-        "equity_curve_points": result["equity_curve_points"],
-        "drawdown_curve_points": result["drawdown_curve_points"],
+        "strategy_indicators": result.get("strategy_indicators", [])[-2500:] if len(result.get("strategy_indicators", [])) > 2500 else result.get("strategy_indicators", []),
+        "equity_curve_points": _downsample_curve(result["equity_curve_points"], max_points=1200),
+        "drawdown_curve_points": _downsample_curve(result["drawdown_curve_points"], max_points=1200),
         "trades": trades_json
     })
 
@@ -903,11 +913,11 @@ def backtest_custom_strategy():
         "wilson_ci_high": result["wilson_ci_high"],
         "wilson_ci_span": result["wilson_ci_span"],
         "reliability": result["reliability"],
-        "ohlcv_bars": result["ohlcv_bars"],
+        "ohlcv_bars": result["ohlcv_bars"][-2500:] if len(result["ohlcv_bars"]) > 2500 else result["ohlcv_bars"],
         "chart_markers": result["chart_markers"],
-        "strategy_indicators": result.get("strategy_indicators", []),
-        "equity_curve_points": result["equity_curve_points"],
-        "drawdown_curve_points": result["drawdown_curve_points"],
+        "strategy_indicators": result.get("strategy_indicators", [])[-2500:] if len(result.get("strategy_indicators", [])) > 2500 else result.get("strategy_indicators", []),
+        "equity_curve_points": _downsample_curve(result["equity_curve_points"], max_points=1200),
+        "drawdown_curve_points": _downsample_curve(result["drawdown_curve_points"], max_points=1200),
         "trades": trades_json
     })
 

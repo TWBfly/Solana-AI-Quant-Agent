@@ -27,14 +27,19 @@ class DexScreenerClient:
     DEFAULT_HEADERS = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
     }
+    _last_failed_time = 0.0
+    _offline_cooldown = 180.0  # 3 minutes cooldown if unreachable
 
-    def __init__(self, timeout: int = 8):
+    def __init__(self, timeout: float = 1.5):
         self.session = requests.Session()
         self.session.headers.update(self.DEFAULT_HEADERS)
         self.timeout = timeout
 
     def get_token_pairs(self, token_address: str) -> List[Dict[str, Any]]:
         """Fetch all DEX pairs for a Solana token mint address."""
+        now = time.time()
+        if now - DexScreenerClient._last_failed_time < DexScreenerClient._offline_cooldown:
+            return []
         url = f"{self.BASE_URL}/tokens/{token_address}"
         try:
             resp = self.session.get(url, timeout=self.timeout)
@@ -48,7 +53,8 @@ class DexScreenerClient:
                 logger.warning(f"DexScreener returned status {resp.status_code}")
                 return []
         except Exception as e:
-            logger.warning(f"Failed to query DexScreener for token {token_address}: {e}")
+            DexScreenerClient._last_failed_time = time.time()
+            logger.info(f"DexScreener API 不可达 (已启用自动离线保护，冷却180s并使用本地高精度行情): {e}")
             return []
 
     def get_primary_pair_telemetry(self, token_address: str) -> Optional[Dict[str, Any]]:
