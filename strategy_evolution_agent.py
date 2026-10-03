@@ -99,6 +99,28 @@ class StrategyEvolutionAgent:
         - Friction and slippage drag percentage
         - Stop loss efficiency (premature stop-outs vs trend-following rides)
         """
+        # Always compute K-line Market Context first
+        kline_market_context = {}
+        if df is not None and len(df) > 0:
+            start_dt = str(df.iloc[0].get("timestamp", ""))
+            end_dt = str(df.iloc[-1].get("timestamp", ""))
+            start_px = float(df.iloc[0]["close"])
+            end_px = float(df.iloc[-1]["close"])
+            px_chg_pct = round((end_px - start_px) / start_px * 100.0, 2) if start_px > 0 else 0.0
+            high_px = float(df["high"].max())
+            low_px = float(df["low"].min())
+            atr_approx = float((df["high"] - df["low"]).mean())
+            atr_ratio_pct = round((atr_approx / end_px) * 100.0, 2) if end_px > 0 else 0.0
+            
+            regime = "宽幅震荡胶着" if abs(px_chg_pct) < 3.0 else ("单边上涨趋势" if px_chg_pct > 0 else "单边下跌走势")
+            kline_market_context = {
+                "total_bars": len(df),
+                "time_span": f"{start_dt} 至 {end_dt}",
+                "price_range": f"${low_px:.2f} ~ ${high_px:.2f} (区间涨跌: {px_chg_pct:+.2f}%)",
+                "avg_bar_atr": f"${atr_approx:.2f} ({atr_ratio_pct:.2f}% 波动度)",
+                "market_regime": regime
+            }
+
         trades = backtest_result.get("trades", [])
         total_trades = len(trades)
         if total_trades == 0:
@@ -111,7 +133,11 @@ class StrategyEvolutionAgent:
                 "avg_mfe_pct": 0.0,
                 "surrendered_profit_usd": 0.0,
                 "friction_drag_pct": 0.0,
-                "top_flaws": ["入场门槛过苛刻导致零交易", "未有效捕捉到趋势波段"]
+                "top_flaws": ["入场门槛过苛刻导致全区间零交易", "多因子共振条件严苛错过真实趋势波段"],
+                "kline_market_context": kline_market_context,
+                "worst_trade_cases": [],
+                "surrender_cases": [],
+                "exit_reasons_breakdown": {}
             }
 
         winning_trades = [t for t in trades if getattr(t, "net_pnl_usd", 0) > 0]
@@ -125,22 +151,22 @@ class StrategyEvolutionAgent:
 
         ts_map = {str(row['timestamp']): idx for idx, row in df.iterrows()}
 
-        for t in trades:
-            def _get(field, default=None):
-                if isinstance(t, dict):
-                    return t.get(field, default)
-                return getattr(t, field, default)
+        def _get(obj, field, default=None):
+            if isinstance(obj, dict):
+                return obj.get(field, default)
+            return getattr(obj, field, default)
 
-            entry_ts = str(_get("entry_time", ""))
-            exit_ts = str(_get("exit_time", ""))
+        for t in trades:
+            entry_ts = str(_get(t, "entry_time", ""))
+            exit_ts = str(_get(t, "exit_time", ""))
             entry_idx = ts_map.get(entry_ts)
             exit_idx = ts_map.get(exit_ts)
 
-            entry_px = float(_get("entry_price", 0.0))
-            exit_px = float(_get("exit_price", 0.0))
-            token_amt = float(_get("token_amount", 1.0))
-            net_pnl = float(_get("net_pnl_usd", 0.0))
-            hold_bars = int(_get("hold_bars", 0))
+            entry_px = float(_get(t, "entry_price", 0.0))
+            exit_px = float(_get(t, "exit_price", 0.0))
+            token_amt = float(_get(t, "token_amount", 1.0))
+            net_pnl = float(_get(t, "net_pnl_usd", 0.0))
+            hold_bars = int(_get(t, "hold_bars", 0))
 
             if entry_idx is not None and exit_idx is not None and exit_idx >= entry_idx:
                 holding_bars = df.iloc[entry_idx: exit_idx + 1]
@@ -168,12 +194,12 @@ class StrategyEvolutionAgent:
                     false_breakout_count += 1
             else:
                 # If timestamp not mapped, fallback to trade's precomputed mae/mfe if present
-                if _get("mae_pct") is not None:
-                    mae_list.append(float(_get("mae_pct")))
-                if _get("mfe_pct") is not None:
-                    mfe_list.append(float(_get("mfe_pct")))
-                if _get("surrendered_profit_usd") is not None:
-                    surrendered_profits += float(_get("surrendered_profit_usd"))
+                if _get(t, "mae_pct") is not None:
+                    mae_list.append(float(_get(t, "mae_pct")))
+                if _get(t, "mfe_pct") is not None:
+                    mfe_list.append(float(_get(t, "mfe_pct")))
+                if _get(t, "surrendered_profit_usd") is not None:
+                    surrendered_profits += float(_get(t, "surrendered_profit_usd"))
 
         avg_mae = float(np.mean(mae_list)) if mae_list else 0.0
         avg_mfe = float(np.mean(mfe_list)) if mfe_list else 0.0
@@ -197,6 +223,75 @@ class StrategyEvolutionAgent:
         if not top_flaws:
             top_flaws.append("策略整体表现稳健，可在持仓非对称盈亏比与出场敏锐度上进一步精细调优。")
 
+        # 1. K-line Market Context
+        kline_market_context = {}
+        if df is not None and len(df) > 0:
+            start_dt = str(df.iloc[0].get("timestamp", ""))
+            end_dt = str(df.iloc[-1].get("timestamp", ""))
+            start_px = float(df.iloc[0]["close"])
+            end_px = float(df.iloc[-1]["close"])
+            px_chg_pct = round((end_px - start_px) / start_px * 100.0, 2) if start_px > 0 else 0.0
+            high_px = float(df["high"].max())
+            low_px = float(df["low"].min())
+            atr_approx = float((df["high"] - df["low"]).mean())
+            atr_ratio_pct = round((atr_approx / end_px) * 100.0, 2) if end_px > 0 else 0.0
+            
+            regime = "宽幅震荡胶着" if abs(px_chg_pct) < 3.0 else ("单边上涨趋势" if px_chg_pct > 0 else "单边下跌走势")
+            kline_market_context = {
+                "total_bars": len(df),
+                "time_span": f"{start_dt} 至 {end_dt}",
+                "price_range": f"${low_px:.2f} ~ ${high_px:.2f} (区间涨跌: {px_chg_pct:+.2f}%)",
+                "avg_bar_atr": f"${atr_approx:.2f} ({atr_ratio_pct:.2f}% 波动度)",
+                "market_regime": regime
+            }
+
+        # 2. Exit reasons breakdown & Trade Cases
+        exit_reasons_breakdown = {}
+        for t in trades:
+            def _get_val(obj, field, default=None):
+                if isinstance(obj, dict):
+                    return obj.get(field, default)
+                return getattr(obj, field, default)
+            rsn = _get_val(t, "exit_reason", "标准平仓")
+            exit_reasons_breakdown[rsn] = exit_reasons_breakdown.get(rsn, 0) + 1
+
+        # 3. Top worst losing trade cases
+        losing_trade_objs = [t for t in trades if float(_get(t, "net_pnl_usd", 0.0)) < 0]
+        losing_trade_objs.sort(key=lambda x: float(_get(x, "net_pnl_usd", 0.0)))
+        worst_cases = []
+        for lt in losing_trade_objs[:3]:
+            e_time = str(_get(lt, "entry_time", ""))
+            x_time = str(_get(lt, "exit_time", ""))
+            e_p = float(_get(lt, "entry_price", 0.0))
+            x_p = float(_get(lt, "exit_price", 0.0))
+            pnl = float(_get(lt, "net_pnl_usd", 0.0))
+            h_bars = int(_get(lt, "hold_bars", 0))
+            rsn = str(_get(lt, "exit_reason", "平仓"))
+            m_pct = float(_get(lt, "mae_pct", 0.0))
+            worst_cases.append({
+                "period": f"{e_time}入场 -> {x_time}出场 (持仓{h_bars}根K线)",
+                "entry_price": f"${e_p:.2f}",
+                "exit_price": f"${x_p:.2f}",
+                "net_loss_usd": f"${pnl:.2f}",
+                "mae_pct": f"{m_pct:.2f}%",
+                "exit_reason": rsn
+            })
+
+        # 4. Surrender cases (high peak profit surrendered)
+        surrender_cases = []
+        for st in trades:
+            e_p = float(_get(st, "entry_price", 0.0))
+            pnl = float(_get(st, "net_pnl_usd", 0.0))
+            mfe = float(_get(st, "mfe_pct", 0.0))
+            if mfe >= 0.8 and pnl < 1.0:
+                surrender_cases.append({
+                    "entry_time": str(_get(st, "entry_time", "")),
+                    "entry_price": f"${e_p:.2f}",
+                    "peak_mfe": f"+{mfe:.2f}%",
+                    "final_pnl": f"${pnl:.2f}",
+                    "flaw": "持仓曾有顺向浮盈，但出场线滞后导致利润全额回吐"
+                })
+
         return {
             "total_trades": total_trades,
             "win_rate": backtest_result.get("win_rate", 0.0),
@@ -206,7 +301,11 @@ class StrategyEvolutionAgent:
             "avg_mfe_pct": round(avg_mfe, 2),
             "surrendered_profit_usd": round(surrendered_profits, 2),
             "friction_drag_pct": round(friction_drag, 1),
-            "top_flaws": top_flaws
+            "top_flaws": top_flaws,
+            "kline_market_context": kline_market_context,
+            "worst_trade_cases": worst_cases,
+            "surrender_cases": surrender_cases,
+            "exit_reasons_breakdown": exit_reasons_breakdown
         }
 
     def compute_fitness(self, metrics: Dict[str, Any], target_goal: str = "balanced", custom_goal: str = "") -> float:
@@ -276,38 +375,85 @@ class StrategyEvolutionAgent:
             "摩擦磨损": f"${backtest_result.get('total_friction_usd', 0.0):.2f}"
         }
 
+        kline_ctx = diagnostics.get("kline_market_context", {})
+        worst_cases = diagnostics.get("worst_trade_cases", [])
+        surrender_cases = diagnostics.get("surrender_cases", [])
+        exit_breakdown = diagnostics.get("exit_reasons_breakdown", {})
+
+        kline_section = ""
+        if kline_ctx:
+            kline_section = f"""【真实 K 线行情走势与微观结构】:
+- 回测样本: {kline_ctx.get('total_bars', 0)} 根 15m K线 ({kline_ctx.get('time_span', '')})
+- 价格波动范围: {kline_ctx.get('price_range', '')}
+- 波动率中枢: {kline_ctx.get('avg_bar_atr', '')}
+- 市场运行状态: {kline_ctx.get('market_regime', '')}
+"""
+
+        cases_section = ""
+        if worst_cases:
+            cases_section += "【深度回测报告典型严重亏损点位 Case】:\n"
+            for idx, c in enumerate(worst_cases, 1):
+                cases_section += f"- 亏损 Case {idx}: {c['period']}, 入场价 {c['entry_price']} -> 出场价 {c['exit_price']}, 净亏损 {c['net_loss_usd']}, 最大逆向浮亏 MAE: {c['mae_pct']}, 触发规则: [{c['exit_reason']}]\n"
+
+        if surrender_cases:
+            cases_section += "【持仓顺向浮盈严重回吐点位 Case】:\n"
+            for idx, c in enumerate(surrender_cases[:2], 1):
+                cases_section += f"- 回吐 Case {idx}: 入场时间 {c['entry_time']}，入场价 {c['entry_price']}，持仓曾达峰值浮盈 {c['peak_mfe']}，最终净收益仅 {c['final_pnl']} ({c['flaw']})\n"
+
+        if exit_breakdown:
+            cases_section += "【全量出场规则触发统计】:\n"
+            for rsn, cnt in exit_breakdown.items():
+                cases_section += f"- 规则 [{rsn}]: 触发 {cnt} 次\n"
+
         flaws_text = "\n".join([f"- {f}" for f in diagnostics.get("top_flaws", [])])
 
         system_prompt = (
-            "你是一位世界顶尖的高频与趋势对冲基金量化架构师，擅长根据回测微观成交点位与K线走势，"
-            "制定严密、可实装、无未来函数的量化策略演化优化方案。输出必须只用中文，言简意赅，逻辑清晰。"
+            "你是一位世界顶尖的高频与趋势对冲基金量化数学家兼策略架构师，严格遵循第一性原理与数学期望方程 E[R] = P*W - (1-P)*L - C > 0。\n"
+            "【核心分析原则】:\n"
+            "你的所有优化方案必须严格基于三位一体因果链：\n"
+            "1. 真实 K 线宏观与微观波动结构 (振幅、ATR中枢、趋势vs震荡)；\n"
+            "2. 深度回测报告中的具体逐笔成交点位 Case (买入价、卖出价、持仓Bar数、触发的出场规则)；\n"
+            "3. 策略源代码的状态机实现 (具体到代码中的变量、阈值参数与函数逻辑)。\n"
+            "【严禁通用八股模板】: 严禁空洞模版套话！每一个分析与优化条目，必须明确指出是针对哪一笔具体的亏损/回吐点位 Case，并明确指出要修改当前策略代码中的哪一行、哪个参数（从旧值调整为新值）。\n"
+            "【输出格式刚性约束】:\n"
+            "1. 全程必须使用严谨中文撰写，严禁输出任何英文草稿、内部思考过程或解释废话！\n"
+            "2. 第一行必须直接以 `### 一、K线微观点位归因剖析` 开头！紧接着输出 `### 二、多维度解决策略（针对性因果解法）` 与 `### 三、详细实施方案（3步具体代码修改方案）`。\n"
+            "3. 输出完毕后立即结束，严禁二次重写或输出第二遍草稿！"
         )
 
-        user_prompt = f"""【当前策略名称】: {strategy_name}
-【优化战略目标】: {goal_desc}
+        user_prompt = f"""【当前策略】: {strategy_name}
+【优化目标】: {goal_desc}
 
-【当前回测关键指标】:
+{kline_section}
+【回测核心绩效与整体指标】:
 {json.dumps(metrics_summary, ensure_ascii=False, indent=2)}
 
-【K线与点位微观缺陷归因】:
+{cases_section}
+【微观诊断缺陷】:
 - 假突破被套率: {diagnostics.get('false_breakout_ratio', 0)}%
-- 平均最大逆向浮亏 (MAE): {diagnostics.get('avg_mae_pct', 0)}%
+- 平均逆向浮亏 (MAE): {diagnostics.get('avg_mae_pct', 0)}%
 - 累计回吐峰值利润: ${diagnostics.get('surrendered_profit_usd', 0)}
-- 识别的核心痛点:
-{flaws_text}
+- 识别痛点:
+{flaws_text or '- 无明显微观缺陷'}
 
-【当前策略核心代码片段】:
+【当前策略完整核心代码】:
 ```python
-{current_code[:1200]}
+{current_code[:3800]}
 ```
 
-请输出包含以下维度的深度分析与详细优化 Plan：
-1. 【K线点位归因剖析】: 深入分析进场点位、假突破、持仓浮亏与出场滞后的核心成因（2-3句话，一针见血）。
-2. 【多维度解决策略】: 
-   - 维度1：入场过滤（如 ATR 波动率过滤、均线斜率、成交量放量确认）
-   - 维度2：动态出场与保本（如 ATR 移动止盈、梯级保本机制）
-   - 维度3：摩擦与假突破防御
-3. 【详细实施 Plan】: 列出具体的 3 步代码修改方案（明确具体指标参数，避免模棱两可）。
+请输出针对该策略在上述盘面与点位下的【深度分析与专属优化 Plan】（必须严格引用上述真实点位 Case 与代码变量，严禁套话）：
+### 一、K线微观点位归因剖析
+直接结合上述【亏损 Case】或【回吐 Case】的点位、价格与触发规则，深入诊断为什么在该行情下会出现被套或回吐（例如追高实体位置、假突破反转、出场过慢或硬止损过宽）。
+
+### 二、多维度解决策略（针对性因果解法）
+- 维度1：入场过滤与状态机解耦（结合上述假突破/赶顶特征，提出具体的指标过滤或波动率约束）
+- 维度2：动态多级出场与凸性保护（结合上述持仓回吐点位，设计保本锁或追踪离场规则）
+- 维度3：微观摩擦防御与防骗线（降低无效磨损）
+
+### 三、详细实施方案（3步具体代码修改方案，明确代码变量名、旧参数值与优化后新值）
+第1步：...
+第2步：...
+第3步：...
 """
 
         try:
@@ -316,9 +462,28 @@ class StrategyEvolutionAgent:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3,
-                max_tokens=1800
+                temperature=0.2,
+                max_tokens=3500
             )
+            # If model produced multiple draft blocks, pick the most complete one containing section 三
+            blocks = re.split(r'\n+(?=###\s*一、)', plan_text)
+            chosen_block = plan_text
+            for b in reversed(blocks):
+                if '### 一、' in b and ('### 三、' in b or '第三步' in b or '第3步' in b):
+                    chosen_block = b
+                    break
+            plan_text = chosen_block.strip()
+            # Robustly strip any preliminary reasoning text or meta thoughts
+            header_idx = -1
+            for pat in [r'(?:###\s*)?一、', r'(?:###\s*)?1\.\s*K线', r'###\s*一\b']:
+                m = re.search(pat, plan_text)
+                if m:
+                    header_idx = m.start()
+                    break
+            if header_idx != -1:
+                plan_text = plan_text[header_idx:].strip()
+            else:
+                plan_text = re.sub(r'^(?:[Ww]e need|我们根据|用户要求|让我们).*?\n\n', '', plan_text, flags=re.DOTALL)
         except Exception as e:
             plan_text = f"AI 生成优化 Plan 降级备用方案:\n1. 引入 ATR 动态波动率阈值过滤震荡假突破；\n2. 增加移动止损 Trailing Stop 锁住浮盈；\n3. 限制频繁短线交易降低手续费磨损。\n(详细异常: {e})"
 
@@ -569,6 +734,7 @@ class EvolvedAlphaStrategy(BaseStrategy):
                     "goal_label": "初始基准",
                     "is_base": True,
                     "python_code": base_code,
+                    "code": base_code,
                     "metrics": base_metrics,
                     "fitness_score": self.compute_fitness(base_metrics, target_goal=target_goal, custom_goal=custom_goal),
                     "plan": "原始策略初始基线，待进行多维度 AI 进化演化。",
@@ -695,6 +861,7 @@ class EvolvedAlphaStrategy(BaseStrategy):
             "is_base": False,
             "is_improved": is_improved,
             "python_code": evolved_code,
+            "code": evolved_code,
             "metrics": new_metrics,
             "fitness_score": new_fitness,
             "plan": plan_info["plan_text"],
@@ -844,6 +1011,273 @@ class EvolvedAlphaStrategy(BaseStrategy):
             "applied_version": target.get("version_tag"),
             "applied_code": code
         }
+
+    def chat_with_copilot(
+        self,
+        strategy_id: str,
+        iteration_id: Optional[str],
+        user_message: str,
+        chat_history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Interactively converses with the Quantitative Mathematician Agent to perform
+        CRUD operations on the Detailed Optimization Plan and Evolved Strategy Source Code.
+        Strictly enforces the boundary of K-line data, strategy logic, and backtest results.
+        """
+        msg_clean = user_message.strip()
+
+        # 1. 严格边界防御过滤 (Hard Perimeter Defense)
+        non_quant_patterns = [
+            r'写.*(?:诗|小说|故事|文案|剧本)',
+            r'今天天气',
+            r'讲个笑话',
+            r'玩.*游戏',
+            r'做菜|美食',
+            r'星座|算命|占星'
+        ]
+        for pat in non_quant_patterns:
+            if re.search(pat, msg_clean):
+                return {
+                    "status": "success",
+                    "reply": (
+                        "【量化边界防御】本 Agent 仅在数学物理模型、K线微观结构（时序/波动率/流动性）"
+                        "及回测因果链下进行策略推演与代码/Plan 增删改查。请提出与当前策略逻辑、K线点位归因或回测数据相关的量化问题。"
+                    ),
+                    "action_executed": None,
+                    "plan_updated": False,
+                    "code_updated": False
+                }
+
+        history = self.load_history(strategy_id)
+        iterations = history.get("iterations", [])
+        if not iterations:
+            return {
+                "status": "error",
+                "message": "当前策略尚无演化迭代版本，请先点击【单步迭代优化】生成基线。"
+            }
+
+        target_iter = None
+        if iteration_id:
+            for it in iterations:
+                if it.get("iteration_id") == iteration_id:
+                    target_iter = it
+                    break
+        if not target_iter:
+            target_iter = iterations[-1]
+
+        current_code = target_iter.get("python_code") or target_iter.get("code", "")
+        current_plan = target_iter.get("plan", "")
+        current_metrics = target_iter.get("metrics", {})
+        current_diag = target_iter.get("diagnostics", {})
+
+        kline_ctx = current_diag.get("kline_market_context", {})
+        worst_cases = current_diag.get("worst_trade_cases", [])
+        surrender_cases = current_diag.get("surrender_cases", [])
+        exit_breakdown = current_diag.get("exit_reasons_breakdown", {})
+
+        kline_text = ""
+        if kline_ctx:
+            kline_text = f"""【真实 K 线行情走势与微观结构】:
+- 回测样本: {kline_ctx.get('total_bars', 0)} 根 15m K线 ({kline_ctx.get('time_span', '')})
+- 价格波动范围: {kline_ctx.get('price_range', '')}
+- 波动率中枢: {kline_ctx.get('avg_bar_atr', '')}
+- 市场运行状态: {kline_ctx.get('market_regime', '')}
+"""
+
+        cases_text = ""
+        if worst_cases:
+            cases_text += "【深度回测报告典型严重亏损点位 Case】:\n"
+            for idx, c in enumerate(worst_cases, 1):
+                cases_text += f"- 亏损 Case {idx}: {c['period']}, 入场价 {c['entry_price']} -> 出场价 {c['exit_price']}, 净亏损 {c['net_loss_usd']}, 最大逆向浮亏 MAE: {c['mae_pct']}, 触发规则: [{c['exit_reason']}]\n"
+
+        if surrender_cases:
+            cases_text += "【持仓顺向浮盈严重回吐点位 Case】:\n"
+            for idx, c in enumerate(surrender_cases[:2], 1):
+                cases_text += f"- 回吐 Case {idx}: 入场时间 {c['entry_time']}，入场价 {c['entry_price']}，持仓曾达峰值浮盈 {c['peak_mfe']}，最终净收益仅 {c['final_pnl']} ({c['flaw']})\n"
+
+        if exit_breakdown:
+            cases_text += "【全量出场规则触发统计】:\n"
+            for rsn, cnt in exit_breakdown.items():
+                cases_text += f"- 规则 [{rsn}]: 触发 {cnt} 次\n"
+
+        system_prompt = (
+            "你是一位世界顶尖的高频与趋势对冲基金量化数学家兼策略架构师。你坚守第一性原理，直击量化本质，追求非对称期望值正反馈：\n"
+            "  E[R] = P_win * Mean(Win) - (1 - P_win) * Mean(Loss) - Friction > 0\n"
+            "你的边界极其严格：你只针对【K线行情与微观结构数据】、【策略状态机逻辑】、【回测绩效与摩擦数据】进行问答、数学推演与代码/Plan 增删改查。\n"
+            "【直接修改左侧详细 Plan 与策略源码的硬性执行规则】:\n"
+            "1. 优化 Plan 直接写入: 当你的回答中提出了具体的优化方案、调整条目、增删规则，或用户指令要求修改/添加 Plan 时，直接在回答中（或末尾）使用 ```plan_update 代码块输出更新后的完整 Plan 文本（多行纯 Markdown 文本，无需 JSON 包装，条目清晰）：\n"
+            "```plan_update\n"
+            "【已更新优化 Plan】\n"
+            "1. [针对点位归因诊断的具体入场过滤与状态机解耦调整]\n"
+            "2. [针对出场滞后或保护的具体参数与止损止盈逻辑]\n"
+            "3. [针对微观摩擦防守的具体代码调整]\n"
+            "```\n"
+            "系统会自动提取并实时同步写入左侧【详细优化 Plan】编辑器中！\n"
+            "2. 策略源码 Python 直接写入: 当你的回答中修改了策略代码（例如入场过滤增强、增加动态移动保本或 ATR 追踪止损、调整指标通道），你必须在回答末尾输出完整可直接运行、继承 BaseStrategy 的 Python 源码代码块：\n"
+            "```python:code_update\n"
+            "# 完整更新后的可执行 Python 代码\n"
+            "from strategy_base import BaseStrategy\n"
+            "...\n"
+            "```\n"
+            "系统会自动编译该代码并实时同步写入左侧【演化策略源码】编辑器中！\n"
+            "3. 保持回答一针见血，严禁任何大模型元草稿套话（禁止输出‘用户要求我...’、‘我们接着分析...’等套话），必须直击数学因果与可执行修改。"
+        )
+
+        context_prompt = f"""【当前交互迭代版本】: {target_iter.get('version_tag', '最新版')} (ID: {target_iter.get('iteration_id')})
+
+{kline_text}
+【当前回测关键指标】:
+{json.dumps(current_metrics, ensure_ascii=False, indent=2)}
+
+{cases_text}
+【K线与点位微观缺陷归因】:
+- 假突破被套率: {current_diag.get('false_breakout_ratio', 0)}%
+- 平均逆向浮亏 (MAE): {current_diag.get('avg_mae_pct', 0)}%
+- 峰值利润回吐: ${current_diag.get('surrendered_profit_usd', 0)}
+- 核心痛点: {current_diag.get('top_flaws', [])}
+
+【当前详细优化 Plan】:
+{current_plan}
+
+【当前演化策略 Python 源码】:
+```python
+{current_code}
+```
+
+【用户指令】:
+{user_message}
+"""
+
+        messages = [{"role": "system", "content": system_prompt}]
+        if chat_history:
+            for item in chat_history[-6:]:
+                messages.append(item)
+        messages.append({"role": "user", "content": context_prompt})
+
+        try:
+            raw_reply = ai_service.call_llm(messages, temperature=0.2, max_tokens=3500)
+        except Exception as e:
+            return {"status": "error", "message": f"调用 AI 服务异常: {str(e)}"}
+
+        # 1. 检查是否包含 plan_update (支持 ```plan_update、```json:plan_update，且支持无闭合截断容错)
+        plan_updated = False
+        new_plan_str = None
+        plan_match = re.search(r'```(?:json:)?plan_update\s*([\s\S]*?)(?:```|$)', raw_reply)
+        if plan_match:
+            p_content = plan_match.group(1).strip()
+            # 若包含 JSON 格式包裹
+            if p_content.startswith('{') and ('plan_text' in p_content or 'action' in p_content):
+                try:
+                    p_data = json.loads(p_content)
+                    new_plan_str = p_data.get("plan_text")
+                except Exception:
+                    reg_match = re.search(r'"plan_text"\s*:\s*"([\s\S]*?)(?:"\s*\}|"\s*$|$)', p_content)
+                    if reg_match:
+                        raw_ext = reg_match.group(1)
+                        try:
+                            new_plan_str = raw_ext.encode().decode('unicode-escape', errors='ignore')
+                        except Exception:
+                            new_plan_str = raw_ext
+                        new_plan_str = new_plan_str.replace('\\n', '\n').replace('\\"', '"')
+                    else:
+                        new_plan_str = p_content
+            else:
+                new_plan_str = p_content
+
+            if new_plan_str and len(new_plan_str.strip()) > 10:
+                new_plan_str = new_plan_str.strip()
+                target_iter["plan"] = new_plan_str
+                plan_updated = True
+
+        # Fallback: 如果用户指令中包含明确的 plan/方案/修改 意图，且 AI 回答中有显式 Plan 格式
+        if not plan_updated and any(w in user_message.lower() for w in ["plan", "方案", "优化", "修改", "增加", "删除", "剔除"]):
+            plan_block_match = re.search(r'(?:【(?:已更新|最新|优化)?\s*Plan.*?】|###\s*(?:详细优化\s*Plan|优化方案))([\s\S]*?)(?:```|$)', raw_reply)
+            if not plan_block_match:
+                plan_block_match = re.search(r'(?:\n|^)(1\.\s+[\s\S]+?)(?:```|$)', raw_reply)
+            if plan_block_match and len(plan_block_match.group(1).strip()) > 20:
+                extracted = plan_block_match.group(0).strip()
+                target_iter["plan"] = extracted
+                new_plan_str = extracted
+                plan_updated = True
+
+        # 2. 检查是否包含 code_update (支持无闭合截断容错)
+        code_updated = False
+        new_code_str = None
+        code_match = re.search(r'```python:code_update\s*([\s\S]*?)(?:```|$)', raw_reply)
+        if not code_match:
+            for m in re.finditer(r'```(?:python)?\s*([\s\S]*?)(?:```|$)', raw_reply):
+                snippet = m.group(1).strip()
+                if ("class " in snippet and "BaseStrategy" in snippet and "evaluate_bar" in snippet) or \
+                   ("prepare_indicators" in snippet and "evaluate_bar" in snippet):
+                    code_match = m
+                    break
+
+        if code_match:
+            candidate_code = self.clean_python_code(code_match.group(1).strip())
+            try:
+                StrategyTranspiler.compile_strategy_instance(candidate_code)
+                target_iter["python_code"] = candidate_code
+                target_iter["code"] = candidate_code
+                new_code_str = candidate_code
+                code_updated = True
+            except Exception as ce:
+                print(f"[Copilot] 建议的新代码编译校验失败 ({ce})，保留原代码")
+
+        # 3. 清洗 reply，隐藏底层更新协议代码块，杜绝生硬 JSON 泄露
+        clean_reply = re.sub(r'```(?:json:)?plan_update[\s\S]*?(?:```|$)', '', raw_reply)
+        clean_reply = re.sub(r'```python:code_update[\s\S]*?(?:```|$)', '', clean_reply).strip()
+
+        # 若清洗后为空，赋予友好的明确说明
+        if not clean_reply and plan_updated and new_plan_str:
+            clean_reply = f"已针对您的指令完成深度因果推演，并实时更新左侧【详细优化 Plan】：\n\n{new_plan_str}"
+        elif not clean_reply and code_updated and new_code_str:
+            clean_reply = "已针对您的指令完成量化状态机重构，新策略代码已通过编译校验，并实时更新左侧【演化策略源码】！"
+
+        # 记录本次对话到迭代记录中，保持状态长效持久
+        if "chat_history" not in target_iter or not isinstance(target_iter.get("chat_history"), list):
+            target_iter["chat_history"] = []
+        target_iter["chat_history"].append({"role": "user", "content": user_message})
+        target_iter["chat_history"].append({"role": "assistant", "content": clean_reply})
+
+        # 始终保存持久化数据
+        self.save_history(strategy_id, history)
+
+        return {
+            "status": "success",
+            "reply": clean_reply,
+            "plan_updated": plan_updated,
+            "updated_plan": new_plan_str if plan_updated else None,
+            "code_updated": code_updated,
+            "updated_code": new_code_str if code_updated else None,
+            "iteration_id": target_iter.get("iteration_id"),
+            "version_tag": target_iter.get("version_tag"),
+            "chat_history": target_iter.get("chat_history", [])
+        }
+
+    def update_iteration_plan(self, strategy_id: str, iteration_id: str, plan_text: str) -> Dict[str, Any]:
+        """Manually updates the detailed plan text for a specific iteration."""
+        history = self.load_history(strategy_id)
+        for it in history.get("iterations", []):
+            if it.get("iteration_id") == iteration_id:
+                it["plan"] = plan_text
+                self.save_history(strategy_id, history)
+                return {"status": "success", "iteration_id": iteration_id, "plan": plan_text}
+        raise ValueError(f"未找到指定的演化版本 {iteration_id}")
+
+    def update_iteration_code(self, strategy_id: str, iteration_id: str, new_code: str) -> Dict[str, Any]:
+        """Manually updates and compiles the evolved Python code for a specific iteration."""
+        clean_code = self.clean_python_code(new_code)
+        # Verify compilation
+        StrategyTranspiler.compile_strategy_instance(clean_code)
+
+        history = self.load_history(strategy_id)
+        for it in history.get("iterations", []):
+            if it.get("iteration_id") == iteration_id:
+                it["python_code"] = clean_code
+                it["code"] = clean_code
+                self.save_history(strategy_id, history)
+                return {"status": "success", "iteration_id": iteration_id, "code": clean_code}
+        raise ValueError(f"未找到指定的演化版本 {iteration_id}")
 
 
 # Singleton instance

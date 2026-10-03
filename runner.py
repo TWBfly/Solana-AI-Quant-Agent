@@ -85,7 +85,7 @@ def run_backtest_command():
     """Executes backtesting workflow."""
     print("▶ 正在加载 Solana 历史多机制市场数据 (15m 分时，包含单边顺势/深跌/宽幅洗盘)...")
     df = HistoricalMarketFeed.generate_solana_market_data(
-        bars_count=2500,
+        bars_count=35000,
         start_price=138.5,
         timeframe_minutes=15,
         seed=99

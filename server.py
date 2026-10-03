@@ -216,7 +216,7 @@ def run_backtest_api():
     trade_size = float(req.get("trade_size", 1000.0))
     stop_loss_mult = float(req.get("stop_loss_mult", 2.0))
     take_profit_mult = float(req.get("take_profit_mult", 3.5))
-    bars_count = int(req.get("bars_count", 2500))
+    bars_count = int(req.get("bars_count", 35000))
 
     # Automatic routing for custom or registered strategies
     strat_id = req.get("strategy_id") or req.get("strategy")
@@ -775,7 +775,7 @@ def backtest_custom_strategy():
     parameters = req.get("parameters") or {}
     token_sym = req.get("token", "SOL").upper()
     timeframe_str = req.get("timeframe", "15m")
-    bars_count = int(req.get("bars_count", 2000))
+    bars_count = int(req.get("bars_count", 35000))
     stress_mult = float(req.get("stress_mult", 1.0))
 
     if not python_code and strat_id:
@@ -1153,6 +1153,66 @@ def apply_strategy_evolution_code():
 
     try:
         res = strategy_evolution_agent.apply_to_studio(strat_id, iteration_id)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/strategy/evolution/chat", methods=["POST"])
+def chat_strategy_evolution():
+    """Interactively converses with the Quantitative Mathematician Agent with Plan & Code CRUD."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    iteration_id = req.get("iteration_id")
+    message = req.get("message", "").strip()
+    history = req.get("history", [])
+
+    if not strat_id or not message:
+        return jsonify({"status": "error", "message": "strategy_id 与 message 不能为空"}), 400
+
+    try:
+        res = strategy_evolution_agent.chat_with_copilot(
+            strategy_id=strat_id,
+            iteration_id=iteration_id,
+            user_message=message,
+            chat_history=history
+        )
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/strategy/evolution/plan/save", methods=["POST"])
+def save_strategy_evolution_plan():
+    """Manually saves updated optimization plan text for an iteration."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    iteration_id = req.get("iteration_id", "")
+    plan_text = req.get("plan_text", "")
+
+    if not strat_id or not iteration_id:
+        return jsonify({"status": "error", "message": "strategy_id 与 iteration_id 不能为空"}), 400
+
+    try:
+        res = strategy_evolution_agent.update_iteration_plan(strat_id, iteration_id, plan_text)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/strategy/evolution/code/save", methods=["POST"])
+def save_strategy_evolution_code():
+    """Manually saves updated strategy code for an iteration."""
+    req = request.get_json() or {}
+    strat_id = req.get("strategy_id", "")
+    iteration_id = req.get("iteration_id", "")
+    code_text = req.get("code_text", "")
+
+    if not strat_id or not iteration_id or not code_text:
+        return jsonify({"status": "error", "message": "strategy_id, iteration_id 与 code_text 不能为空"}), 400
+
+    try:
+        res = strategy_evolution_agent.update_iteration_code(strat_id, iteration_id, code_text)
         return jsonify(res)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400

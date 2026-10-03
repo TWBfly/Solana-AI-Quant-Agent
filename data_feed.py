@@ -496,7 +496,7 @@ class HistoricalMarketFeed:
         cls,
         symbol: str = "SOL",
         timeframe_minutes: int = 15,
-        bars_count: int = 2500,
+        bars_count: int = 35000,
         start_price: float = None,
         base_liquidity: float = None,
         data_dir: str = "data",
@@ -524,7 +524,7 @@ class HistoricalMarketFeed:
         try:
             from market_db import market_db
             df_db = market_db.get_klines(symbol=sym, timeframe=tf_str, limit=bars_count)
-            if not df_db.empty and len(df_db) >= min(bars_count, 500):
+            if not df_db.empty and len(df_db) >= bars_count:
                 logger.info(f"Loaded {len(df_db)} real market bars from SQLite DB for {sym} ({tf_str})")
                 return df_db
         except Exception as e:
