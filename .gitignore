@@ -45,3 +45,5 @@ data/*.db
 data/*.db-wal
 data/*.db-shm
 *.log
+data/ai_config.json
+.env
