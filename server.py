@@ -274,6 +274,8 @@ def run_backtest_api():
     tf_minutes = 15
     if timeframe_str == "5m":
         tf_minutes = 5
+    elif timeframe_str == "10m":
+        tf_minutes = 10
     elif timeframe_str == "1h":
         tf_minutes = 60
     elif timeframe_str == "4h":
@@ -830,6 +832,8 @@ def backtest_custom_strategy():
     tf_minutes = 15
     if timeframe_str == "5m":
         tf_minutes = 5
+    elif timeframe_str == "10m":
+        tf_minutes = 10
     elif timeframe_str == "1h":
         tf_minutes = 60
     elif timeframe_str == "4h":

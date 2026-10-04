@@ -71,7 +71,7 @@ class StrategyEvolutionAgent:
 
     def get_market_df(self, token_sym: str = "SOL", timeframe: str = "15m", bars: int = 500) -> pd.DataFrame:
         """Fetches market K-lines for backtesting."""
-        tf_map = {"5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240}
+        tf_map = {"1m": 1, "5m": 5, "10m": 10, "15m": 15, "30m": 30, "1h": 60, "4h": 240}
         tf_minutes = tf_map.get(timeframe, 15)
 
         token_info = HistoricalMarketFeed.SUPPORTED_TOKENS.get(token_sym, {})

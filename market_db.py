@@ -209,6 +209,7 @@ class MarketDatabase:
         # Map timeframe to Yahoo Finance interval
         tf_map = {
             "5m": "5m",
+            "10m": "5m",
             "15m": "15m",
             "1h": "60m",
             "4h": "1h",
@@ -264,6 +265,20 @@ class MarketDatabase:
                 return 0
 
             df = pd.DataFrame(clean_records)
+            if timeframe.lower() == "10m" and not df.empty:
+                df["dt"] = pd.to_datetime(df["timestamp"])
+                df = df.set_index("dt").resample("10min").agg({
+                    "open": "first",
+                    "high": "max",
+                    "low": "min",
+                    "close": "last",
+                    "volume_usd": "sum",
+                    "liquidity_usd": "last",
+                    "buy_ratio": "mean"
+                }).dropna().reset_index()
+                df["timestamp"] = df["dt"].dt.strftime("%Y-%m-%d %H:%M:%S")
+                df = df.drop(columns=["dt"])
+
             saved_count = self.save_klines(symbol=symbol, timeframe=timeframe, df=df)
             logger.info(f"Successfully synchronized {saved_count} real bars for {symbol} ({timeframe}) to SQLite DB.")
             return saved_count

@@ -515,8 +515,12 @@ class HistoricalMarketFeed:
         3. Priority 3: Calibrated multi-regime Solana stochastic generator.
         """
         tf_str = "15m"
-        if timeframe_minutes == 5:
+        if timeframe_minutes == 1:
+            tf_str = "1m"
+        elif timeframe_minutes == 5:
             tf_str = "5m"
+        elif timeframe_minutes == 10:
+            tf_str = "10m"
         elif timeframe_minutes == 60:
             tf_str = "1h"
         elif timeframe_minutes == 240:

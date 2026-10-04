@@ -152,6 +152,7 @@
         <span class="text-slate-400 px-2 font-medium">周期:</span>
         <button onclick="setTimeframe('1m')" id="tf_1m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">1m</button>
         <button onclick="setTimeframe('5m')" id="tf_5m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">5m</button>
+        <button onclick="setTimeframe('10m')" id="tf_10m" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">10m</button>
         <button onclick="setTimeframe('15m')" id="tf_15m" class="px-2.5 py-1 rounded bg-cyan-600 text-white font-semibold transition">15m</button>
         <button onclick="setTimeframe('1h')" id="tf_1h" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">1h</button>
         <button onclick="setTimeframe('4h')" id="tf_4h" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">4h</button>
@@ -1743,7 +1744,7 @@
 
       // Calculate real trading days
       const tfStr = res.timeframe || currentTimeframe || "15m";
-      const tfMinutes = (tfStr === '5m') ? 5 : (tfStr === '1h') ? 60 : (tfStr === '4h') ? 240 : (tfStr === '1m' ? 1 : 15);
+      const tfMinutes = (tfStr === '5m') ? 5 : (tfStr === '10m') ? 10 : (tfStr === '1h') ? 60 : (tfStr === '4h') ? 240 : (tfStr === '1m' ? 1 : 15);
       let tradingDays = 365.25;
       if (res.start_time && res.end_time) {
         const diffMs = new Date(res.end_time) - new Date(res.start_time);
@@ -2200,7 +2201,7 @@
 
       // 2. Set timeframe to 1m
       currentTimeframe = "1m";
-      ["1m", "5m", "15m", "1h", "4h"].forEach(t => {
+      ["1m", "5m", "10m", "15m", "1h", "4h"].forEach(t => {
         const btn = document.getElementById(`tf_${t}`);
         if (btn) {
           if (t === "1m") {
@@ -2238,6 +2239,14 @@
         { count: 8640, label: "8,640 根 (约 30 天，月度全样本)" },
         { count: 17280, label: "17,280 根 (约 60 天，双月深度样本)" },
         { count: 28800, label: "28,800 根 (约 100 天，百天高频极值)" }
+      ],
+      "10m": [
+        { count: 1200, label: "1,200 根 (约 8.3 天，周内大数样本)", selected: true },
+        { count: 2500, label: "2,500 根 (约 17.4 天，半月基准样本)" },
+        { count: 5000, label: "5,000 根 (约 34.7 天，月度波段样本)" },
+        { count: 10000, label: "10,000 根 (约 69.4 天，双月深度周期)" },
+        { count: 20000, label: "20,000 根 (约 138.9 天，季度大样本)" },
+        { count: 35000, label: "35,000 根 (约 243 天，半年度全样本)" }
       ],
       "15m": [
         { count: 1200, label: "1,200 根 (约 12.5 天，半月敏捷样本)", selected: true },
@@ -2280,7 +2289,7 @@
 
     function setTimeframe(tf) {
       currentTimeframe = tf;
-      ["1m", "5m", "15m", "1h", "4h"].forEach(t => {
+      ["1m", "5m", "10m", "15m", "1h", "4h"].forEach(t => {
         const btn = document.getElementById(`tf_${t}`);
         if (btn) {
           if (t === tf) {
@@ -2900,7 +2909,7 @@
       document.getElementById("auditWinLoss").innerText = res.win_loss_ratio.toFixed(2);
       // Calculate real time span & holding period
       const tfStr = res.timeframe || currentTimeframe;
-      const tfMinutes = (tfStr === '5m') ? 5 : (tfStr === '1h') ? 60 : (tfStr === '4h') ? 240 : (tfStr === '1m' ? 1 : 15);
+      const tfMinutes = (tfStr === '5m') ? 5 : (tfStr === '10m') ? 10 : (tfStr === '1h') ? 60 : (tfStr === '4h') ? 240 : (tfStr === '1m' ? 1 : 15);
       const holdHours = (res.avg_hold_bars * tfMinutes) / 60;
       const holdText = holdHours >= 24 ? `${(holdHours / 24).toFixed(1)} 天` : `${holdHours.toFixed(1)} 小时`;
       document.getElementById("auditAvgHold").innerText = `${res.avg_hold_bars.toFixed(1)} 柱 (约 ${holdText})`;
