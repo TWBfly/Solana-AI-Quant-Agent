@@ -301,7 +301,7 @@ def run_backtest_api():
         start_price=anchor_price,
         base_liquidity=anchor_liq,
         data_dir="data",
-        seed=99
+        seed=None
     )
 
     engine = SolanaBacktestEngine(strategy_config=custom_strat_cfg)
@@ -852,7 +852,7 @@ def backtest_custom_strategy():
         start_price=anchor_price,
         base_liquidity=anchor_liq,
         data_dir="data",
-        seed=99
+        seed=None
     )
 
     engine = SolanaBacktestEngine()

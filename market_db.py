@@ -195,11 +195,14 @@ class MarketDatabase:
         Fetches authentic real-time/historical OHLCV data directly from institutional-grade public feeds
         (e.g., Yahoo Finance Market Chart API) and persists immediately to SQLite.
         """
+        # Note: Yahoo JUP-USD is old defunct ERC20 Jupiter ($0.0003), not Solana Jupiter ($0.85)
+        if symbol.upper() == "JUP":
+            return 0
+
         ticker_map = {
             "SOL": "SOL-USD",
             "BTC": "BTC-USD",
             "ETH": "ETH-USD",
-            "JUP": "JUP-USD",
             "RAY": "RAY-USD",
             "BONK": "BONK-USD",
             "WIF": "WIF-USD"

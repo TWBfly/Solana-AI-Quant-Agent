@@ -12,6 +12,7 @@ import logging
 import requests
 import pandas as pd
 import numpy as np
+import hashlib
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
@@ -404,11 +405,39 @@ class HistoricalMarketFeed:
         Creates a realistic, high-frequency Solana historical dataset.
         Includes bull trends, bear selloffs, whipsaw chop, and volume surges.
         """
-        np.random.seed(seed)
-        random.seed(seed)
+        # 0. Normalize timeframe_minutes to integer
+        if isinstance(timeframe_minutes, str):
+            s = str(timeframe_minutes).lower().strip()
+            if s.endswith("m"):
+                timeframe_minutes = int(s[:-1]) if s[:-1].isdigit() else 15
+            elif s.endswith("h"):
+                timeframe_minutes = int(s[:-1]) * 60 if s[:-1].isdigit() else 60
+            elif s.endswith("d"):
+                timeframe_minutes = int(s[:-1]) * 1440 if s[:-1].isdigit() else 1440
+            else:
+                timeframe_minutes = int(s) if s.isdigit() else 15
+        elif not isinstance(timeframe_minutes, int):
+            timeframe_minutes = 15
 
-        # Lookup token defaults if not specified
-        token_info = HistoricalMarketFeed.SUPPORTED_TOKENS.get(symbol.upper(), {})
+        # 1. Derive deterministic unique seed per symbol & timeframe
+        sym_upper = symbol.upper()
+        sym_hash = int(hashlib.md5(f"{sym_upper}_{timeframe_minutes}".encode('utf-8')).hexdigest()[:8], 16)
+        actual_seed = (sym_hash + (seed if seed is not None else 42)) % 1000000
+        np.random.seed(actual_seed)
+        random.seed(actual_seed)
+
+        # 2. Asset Category Volatility, Drift & Tail Jump Calibration
+        token_info = HistoricalMarketFeed.SUPPORTED_TOKENS.get(sym_upper, {})
+        category = token_info.get("category", "defi")
+        cat_configs = {
+            "bluechip": {"vol_mult": 0.50, "drift_mult": 0.75, "jump_prob": 0.010, "jump_mag": 0.015},
+            "l1":       {"vol_mult": 1.00, "drift_mult": 1.00, "jump_prob": 0.020, "jump_mag": 0.025},
+            "defi":     {"vol_mult": 1.55, "drift_mult": 1.25, "jump_prob": 0.035, "jump_mag": 0.045},
+            "infra":    {"vol_mult": 1.30, "drift_mult": 1.10, "jump_prob": 0.025, "jump_mag": 0.035},
+            "meme":     {"vol_mult": 2.60, "drift_mult": 1.45, "jump_prob": 0.060, "jump_mag": 0.080},
+        }
+        cfg = cat_configs.get(category, cat_configs["defi"])
+
         if start_price is None:
             start_price = token_info.get("default_price", 135.0)
         if base_liquidity is None:
@@ -438,25 +467,25 @@ class HistoricalMarketFeed:
                                           p=[0.35, 0.25, 0.25, 0.15])
                 regime_duration = 0
 
-            # Regime-dependent drift and volatility
+            # Regime-dependent drift and volatility scaled by asset category
             if regime == "TREND_UP":
-                drift = 0.0006
-                vol = 0.0055
+                drift = 0.0006 * cfg["drift_mult"]
+                vol = 0.0055 * cfg["vol_mult"]
             elif regime == "TREND_DOWN":
-                drift = -0.0008
-                vol = 0.0075
+                drift = -0.0008 * cfg["drift_mult"]
+                vol = 0.0075 * cfg["vol_mult"]
             elif regime == "CHOP_WHIPSAW":
                 drift = 0.0000
-                vol = 0.0040
+                vol = 0.0040 * cfg["vol_mult"]
             else:  # VOLATILITY_EXPANSION
-                drift = 0.0002
-                vol = 0.0120
+                drift = 0.0002 * cfg["drift_mult"]
+                vol = 0.0120 * cfg["vol_mult"]
 
             # Price simulation (GBM with jump process)
             ret = drift + vol * np.random.normal()
-            # 2% probability of flash dump or pump
-            if np.random.rand() < 0.02:
-                ret += np.random.choice([-0.025, 0.025])
+            # Flash dump or pump scaled by asset volatility
+            if np.random.rand() < cfg["jump_prob"]:
+                ret += np.random.choice([-cfg["jump_mag"], cfg["jump_mag"]])
 
             open_p = current_price
             min_floor = max(start_price * 0.05, 1e-8)
@@ -501,12 +530,12 @@ class HistoricalMarketFeed:
     def get_market_data(
         cls,
         symbol: str = "SOL",
-        timeframe_minutes: int = 15,
+        timeframe_minutes: Any = 15,
         bars_count: int = 35000,
         start_price: float = None,
         base_liquidity: float = None,
         data_dir: str = "data",
-        seed: int = 99
+        seed: Optional[int] = None
     ) -> pd.DataFrame:
         """
         Hybrid market data loader:
@@ -514,18 +543,29 @@ class HistoricalMarketFeed:
         2. Priority 2: Local CSV data file (data/{SYMBOL}_{TIMEFRAME}.csv)
         3. Priority 3: Calibrated multi-regime Solana stochastic generator.
         """
-        tf_str = "15m"
-        if timeframe_minutes == 1:
-            tf_str = "1m"
-        elif timeframe_minutes == 5:
-            tf_str = "5m"
-        elif timeframe_minutes == 10:
-            tf_str = "10m"
-        elif timeframe_minutes == 60:
-            tf_str = "1h"
-        elif timeframe_minutes == 240:
-            tf_str = "4h"
+        if isinstance(timeframe_minutes, str):
+            s = str(timeframe_minutes).lower().strip()
+            if s.endswith("m"):
+                tf_int = int(s[:-1]) if s[:-1].isdigit() else 15
+            elif s.endswith("h"):
+                tf_int = int(s[:-1]) * 60 if s[:-1].isdigit() else 60
+            elif s.endswith("d"):
+                tf_int = int(s[:-1]) * 1440 if s[:-1].isdigit() else 1440
+            else:
+                tf_int = int(s) if s.isdigit() else 15
+        elif isinstance(timeframe_minutes, int):
+            tf_int = timeframe_minutes
+        else:
+            tf_int = 15
 
+        if tf_int < 60:
+            tf_str = f"{tf_int}m"
+        elif tf_int < 1440:
+            tf_str = f"{tf_int // 60}h"
+        else:
+            tf_str = f"{tf_int // 1440}d"
+
+        timeframe_minutes = tf_int
         sym = symbol.upper()
 
         # -------------------------------------------------------------
@@ -534,7 +574,7 @@ class HistoricalMarketFeed:
         try:
             from market_db import market_db
             df_db = market_db.get_klines(symbol=sym, timeframe=tf_str, limit=bars_count)
-            if not df_db.empty and len(df_db) >= bars_count:
+            if not df_db.empty and (len(df_db) >= bars_count or len(df_db) >= 500):
                 logger.info(f"Loaded {len(df_db)} real market bars from SQLite DB for {sym} ({tf_str})")
                 return df_db
         except Exception as e:
